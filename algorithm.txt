@@ -1,0 +1,78 @@
+Let process_queue = ALL processes created by user (in order by startTime)
+Let blocked_processes = A map of key-value pairs, the key being the IO endTime and the value being a list of process objects.
+Let priority_boost = a value provided by the user
+
+Start the timer at 0 and for each millisecond:
+	- IF timer MOD priority_boost == 0:
+		- print priority boost has been triggered
+		- Move every process (including blocked ones) to the highest priority queue
+		- For process in the highest priority queue:
+			- process.allotment_used = 0
+			- process.quantum_used = 0
+
+	- while len(process_queue) > 0 AND process_queue[0] has startTime = timer:
+		- Add process_queue[0] to top queue
+		- Remove process_queue[0] from process_queue
+
+    - FOR cur_queue IN queues:
+	    - FOR process IN cur_queue.blocked_processes[timer]:
+		    - Remove process.IO[0] from process.IO
+		    - Let nextIO = process.IO[0] IF len(process.IO) > 0 ELSE null;
+		    - print the IO has now finished
+
+		    - IF nextIO == null OR nextIO.startTime > timer:
+			    - Set process state to READY
+			    - print that the process is now UNBLOCKED
+			    - Add process to the back of cur_queue
+		    - ELSE:
+			    - print out that the next IO operation is now blocking process
+			    cur_queue.blocked_processes[nextIO.endTime + 1].append(process)
+    
+        - delete cur_queue.blocked_processes[timer]
+	
+	- Let process = null
+	- Let Q = null
+
+	- FOR cur_queue IN queues (starting from highest priority):
+		- WHILE len(cur_queue) > 0:
+			- process = cur_queue[0]
+			- Let IO = process.IO[0] IF len(process.IO) > 0 ELSE null;
+	
+			- If IO != null AND IO.startTime = timer:
+				- print out that IO operation is now blocking process
+				- Set process state to BLOCKED
+				- cur_queue.blocked_processes[IO.endTime + 1].append(process)
+				- Remove process from cur_queue
+			- Else:
+				- break
+		
+		- IF len(cur_queue) > 0:
+			- Q = cur_queue
+			- break
+    
+	- IF Q = null:
+        - Increment the timer by 1.
+        - print out that the CPU is idle for this millisecond
+		- continue
+	
+	- If process.state = READY:
+		- process.state = RUNNING
+
+	- Print out the process state.
+
+	- Increment process.allotment_used by 1.
+	- Increment process.progress by 1.
+	- Increment process.quantum_used by 1.
+
+	- If the process.progress = endTime - startTime + 1:
+		- Print out that the process has finished.
+		- Remove the process from Q.
+	- Else If process.allotment_used = Queue.allotment and the queue is not the last queue:
+		- Reset process.allotment_used back to 0.
+        - Reset process.quantum_used back to 0.
+		- Remove process from Q and add it to the back of the next queue.
+	- Else if process.quantum_used == quantum:
+		- process.quantum_used = 0
+		- Remove process from the front of Q and add to the back of Q.
+    
+    - Increment the timer by 1.
