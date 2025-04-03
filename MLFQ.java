@@ -1,78 +1,74 @@
 import java.util.*;
 
 public class MLFQ {
-    private JobQueue[] jobQueues;
-    private int priorityBoost = -1;
-    private Scanner scanner;
+    private CommandHandler commandHandler;
+    private List<JobQueue> jobQueues;
 
-    public MLFQ() {
-        this.scanner = new Scanner(System.in);
-        setupMLFQ();
-        showConfigSummary();
-        run();
+    private volatile boolean running;
+    private volatile boolean paused;
+
+    private int priorityBoost;
+    private int timer;
+
+    public MLFQ(MLFQBuilder builder) {
+        this.jobQueues = builder.jobQueues;
+        this.priorityBoost = builder.priorityBoost;
+        this.commandHandler = new CommandHandler(this);
     }
 
-    private void run() {
-        System.out.println("\nConfiguration Complete! Starting simulation...");
-        System.out.println("\n==========================================================\n");
-    }
+    public void run() throws InterruptedException {
+        System.out.println("\nSimulation started. Type 'help' for commands.");
+        System.out.println("\n==========================================================");
+        System.out.print("\n> ");
 
-    private void showConfigSummary() {
-        System.out.println("\n==========================================================\r\n" +
-                        "MULTI-LEVEL FEEDBACK QUEUE SUMMARY  \r\n" +
-                        "==========================================================");
-
-        System.out.println("\nPriority boost " + (priorityBoost == -1 ? "has been disabled." : "has been set to every " + priorityBoost + " seconds."));
-
-        System.out.println("\nJOB QUEUES (priority queues):\n");
-        for (int i = 0; i < jobQueues.length; i++) {
-            JobQueue queue = jobQueues[i];
-            System.out.print("Job Queue " + i + (i == 0 ? " (Highest Priority)" : i == jobQueues.length - 1 ? " (Lowest Priority)" : "") + " -> ");
-            System.out.print("Allotment: " + queue.getAllotment() + " | Quantum: " + queue.getQuantum() + "\n");
-        }
-
-        System.out.print("\nAre you happy to continue with this configuration and run the simulation? (yes/no) ");
-        String acceptConfig = scanner.next();
-
-        if (!acceptConfig.equals("yes")) {
-            setupMLFQ();
+        Thread commandThread = new Thread(() -> commandHandler.listen());
+        commandThread.setDaemon(true);
+        commandThread.start();
+        running = true;
+        
+        while (running) {
+            while (!paused && running) {
+                System.out.print("\r                          \r" + timer + "\n> ");
+                executeIteration();
+                Thread.sleep(1000);
+                timer++;
+            }
         }
     }
 
-    private void setupMLFQ() {
-        System.out.println("==========================================================\r\n" +
-                        "MULTI-LEVEL FEEDBACK QUEUE SCHEDULER  \r\n" +
-                        "==========================================================");
-
-        System.out.println("\nSetup Phase: Configure the MLFQ Scheduler");
-
-        System.out.print("\nEnable priority boosting? (yes/no) ");
-        String enablePriorityBoost = scanner.next();
-
-        if (enablePriorityBoost.equals("yes")) {
-            System.out.print("Enter priority boost interval (ms): ");
-            priorityBoost = scanner.nextInt();
-        }
-
-        System.out.print("Enter the number of priority levels (queues): ");
-        int numJobQueues = scanner.nextInt();
-        jobQueues = new JobQueue[numJobQueues];
-
-        System.out.println("\nConfiguring job queues (from highest priority to lowest):");
-        for (int i = 0; i < numJobQueues; i++) {
-            setupJobQueue(i);
-        }
+    private void executeIteration() {
+        // Execute 1 iteration of the MLFQ algo
     }
 
-    private void setupJobQueue(int queueNumber) {
-        System.out.println("\nJob Queue " + queueNumber + (queueNumber == 0 ? " (Highest Priority)" : queueNumber == jobQueues.length - 1 ? " (Lowest Priority)" : ""));
+    public boolean getPaused() {
+        return paused;
+    }
 
-        System.out.print("- Enter time quantum (ms): ");
-        int quantum = scanner.nextInt();
+    public void pause() { paused = true; }
+    public void resume() { paused = false; }
+    public void exit() { running = false; }
 
-        System.out.print("- Enter allotment (number of quanta before demotion): ");
-        int allotment = scanner.nextInt();
+    public static class MLFQBuilder {
+        private List<JobQueue> jobQueues;
+        private int priorityBoost;
 
-        jobQueues[queueNumber] = new JobQueue(allotment, quantum);
+        public MLFQBuilder() {
+            this.jobQueues = new ArrayList<>();
+            this.priorityBoost = -1;
+        }
+
+        public MLFQBuilder setPriorityBoost(int priorityBoost) {
+            this.priorityBoost = priorityBoost;
+            return this;
+        }
+
+        public MLFQBuilder addJobQueue(int allotment, int quantum) {
+            this.jobQueues.add(new JobQueue(allotment, quantum));
+            return this;
+        }
+
+        public MLFQ build() {
+            return new MLFQ(this);
+        }
     }
 }

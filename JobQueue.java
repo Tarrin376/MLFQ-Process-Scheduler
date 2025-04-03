@@ -12,17 +12,4 @@ public class JobQueue {
         this.allotment = allotment;
         this.quantum = quantum;
     }
-
-    @Override
-    public String toString() {
-        return "";
-    }
-
-    public int getAllotment() {
-        return allotment;
-    }
-
-    public int getQuantum() {
-        return quantum;
-    }
 }
