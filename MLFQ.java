@@ -1,71 +1,66 @@
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class MLFQ {
     private final List<JobQueue> jobQueues;
-    private final ConcurrentHashMap<Integer, List<Job>> blockedJobs;
-    private final ConcurrentHashMap<Integer, List<Job>> readyJobs;
-    private final ConcurrentHashMap<String, Job> jobPIDs;
+    private final Map<Integer, List<Job>> blockedJobs;
+    private final Map<Integer, List<Job>> readyJobs;
+    private final Map<String, Job> jobPIDs;
+    private final CommandHandler commandHandler;
     private final int priorityBoost;
 
-    private AtomicBoolean isExecutingIteration;
-    private AtomicBoolean running;
     private AtomicBoolean paused;
-    private AtomicLong timer;
+    private AtomicBoolean running;
+    private long timer;
 
     public MLFQ(final MLFQBuilder builder) {
-        this.jobQueues = builder.jobQueues;
-        this.priorityBoost = builder.priorityBoost;
+        jobQueues = builder.jobQueues;
+        priorityBoost = builder.priorityBoost;
         
-        this.blockedJobs = new ConcurrentHashMap<>();
-        this.readyJobs = new ConcurrentHashMap<>();
-        this.jobPIDs = new ConcurrentHashMap<>();
+        blockedJobs = new HashMap<>();
+        readyJobs = new HashMap<>();
+        jobPIDs = new HashMap<>();
+        commandHandler = new CommandHandler(this);
 
-        this.isExecutingIteration = new AtomicBoolean(false);
-        this.running = new AtomicBoolean(false);
-        this.paused = new AtomicBoolean(false);
-        this.timer = new AtomicLong(0);
+        paused = new AtomicBoolean(false);
+        running = new AtomicBoolean(true);
     }
 
-    public void setRunning(final boolean running) { this.running.set(running); }
-    public void setPaused(final boolean paused) { this.paused.set(paused); }
-
+    public void setRunning(boolean running) { this.running.set(running); }
     public boolean getRunning() { return running.get(); }
+
+    public void setPaused(boolean paused) { this.paused.set(paused); }
     public boolean getPaused() { return paused.get(); }
-    public boolean isExecuting() { return isExecutingIteration.get(); }
 
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
         System.out.println("\n==========================================================");
 
-        Thread commandThread = new Thread(new CommandHandler(this));
-        commandThread.setDaemon(true);
-        commandThread.start();
+        Thread enterPauseListener = new Thread(new EnterPauseListener(this));
+        enterPauseListener.setDaemon(true);
+        enterPauseListener.start();
+
         running.set(true);
-        
         while (running.get()) {
-            while (!paused.get() && running.get()) {
-                isExecutingIteration.set(true);
-                System.out.println("\r                      \n(Executing...)");
-                executeIteration();
-
-                timer.set(timer.get() + 1);
-                System.out.println("(Done) Time elapsed: " + timer + "ms");
-
-                isExecutingIteration.set(false);
-                System.out.print("> ");
-                Thread.sleep(2000);
+            if (paused.get()) {
+                commandHandler.run();
+                continue;
             }
+
+            System.out.println("\n(Executing...)");
+            executeIteration();
+
+            timer++;
+            System.out.println("(Done) Time elapsed: " + timer + "ms");
+            Thread.sleep(1000);
         }
     }
 
-    private void executeIteration() throws InterruptedException {
-        Thread.sleep(500);
+    private void executeIteration() {
+        // logic
     }
 
-    public synchronized void addJob(final String pid, final int arrivalTime, final int endTime) {
+    public void addJob(final String pid, final int arrivalTime, final int endTime) {
         if (!validTimeWindow(arrivalTime, endTime)) {
             return;
         } else if (jobPIDs.containsKey(pid)) {
@@ -75,13 +70,13 @@ public class MLFQ {
 
         Job job = new Job(pid, arrivalTime, endTime);
         List<Job> jobsAtTimestamp = readyJobs.getOrDefault(arrivalTime, new ArrayList<>());
-
         jobsAtTimestamp.add(job);
+
         readyJobs.put(arrivalTime, jobsAtTimestamp);
         jobPIDs.put(pid, job);
     }
 
-    public synchronized void addIO(final String ioName, final String pid, final int arrivalTime, final int endTime) {
+    public void addIO(final String ioName, final String pid, final int arrivalTime, final int endTime) {
         if (!validTimeWindow(arrivalTime, endTime)) {
             return;
         } else if (!jobPIDs.containsKey(pid)) {
@@ -94,10 +89,10 @@ public class MLFQ {
     }
 
     private boolean validTimeWindow(final int arrivalTime, final int endTime) {
-        if (arrivalTime < timer.get()) {
-            System.out.println("Arrival time is too late.");
+        if (arrivalTime < 0) {
+            System.out.println("Arrival time must be a non-negative integer.");
             return false;
-        } else if (arrivalTime >= endTime) {
+        } if (arrivalTime >= endTime) {
             System.out.println("End time must be greater than the arrival time.");
             return false;
         } 

@@ -7,16 +7,16 @@ enum JobState {
 }
 
 public class Job {
+    public final PriorityQueue<IO> ioQueue;
     private final String pid;
+
     private final int startTime;
     private final int endTime;
 
+    private JobState state = JobState.READY;
     private int progress;
     private int allotmentUsed;
     private int quantumUsed;
-
-    public final PriorityQueue<IO> ioQueue;
-    private JobState state = JobState.READY;
 
     public Job(final String pid, final int startTime, final int endTime) {
         ioQueue = new PriorityQueue<>((a, b) -> Integer.compare(a.getStartTime(), b.getStartTime()));

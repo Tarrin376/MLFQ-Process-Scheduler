@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class CommandHandler implements Runnable {
+public class CommandHandler {
     private Scanner scanner;
     private MLFQ scheduler;
 
@@ -10,21 +10,13 @@ public class CommandHandler implements Runnable {
     }
 
     public void run() {
-        while (true) {
-            if (scheduler.getPaused()) {
-                System.out.print("> ");
-            }
-
-            while (scheduler.isExecuting()) {
-                continue;
-            }
-
+        while (scheduler.getPaused()) {
+            System.out.print("\r> ");
             String command = scanner.nextLine();
             String[] parts = command.split(" ");
-
+    
             if (parts.length > 0) {
-                if (scheduler.getPaused()) executeCommand(parts);
-                else if (parts[0].equals("-p")) scheduler.setPaused(true);
+                executeCommand(parts);
             }
         }
     }
@@ -52,9 +44,6 @@ public class CommandHandler implements Runnable {
                 break;
             case "exit":
                 scheduler.setRunning(false);
-                break;
-            default:
-                System.out.println("Not a valid command, type 'help' for commands.");
                 break;
         }
     }
