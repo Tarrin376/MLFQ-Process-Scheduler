@@ -15,7 +15,7 @@ public class CommandHandler implements Runnable {
                 System.out.print("> ");
             }
 
-            while (scheduler.getIsExecutingIteration()) {
+            while (scheduler.isExecuting()) {
                 continue;
             }
 
@@ -36,9 +36,11 @@ public class CommandHandler implements Runnable {
                 break;
             case "add-job":
                 scheduler.addJob(command[1], Integer.parseInt(command[2]), Integer.parseInt(command[3]));
+                System.out.println("Job with pid: " + command[1] + " has been added to the scheduler");
                 break;
             case "add-io":
                 scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
+                System.out.println("IO operation: " + command[1] + " has been added to the IO queue of job with pid: " + command[2]);
                 break;
             case "show-queues":
                 break;

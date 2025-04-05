@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class Scheduler {
+public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         MLFQBuilder builder = new MLFQBuilder();

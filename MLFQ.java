@@ -1,33 +1,40 @@
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MLFQ {
     private final List<JobQueue> jobQueues;
     private final ConcurrentHashMap<Integer, List<Job>> blockedJobs;
     private final ConcurrentHashMap<Integer, List<Job>> readyJobs;
-    private final ConcurrentHashMap<String, Job> pendingJobs;
+    private final ConcurrentHashMap<String, Job> jobPIDs;
     private final int priorityBoost;
 
-    private volatile boolean isExecutingIteration;
-    private volatile boolean running;
-    private volatile boolean paused;
-    private volatile long timer;
+    private AtomicBoolean isExecutingIteration;
+    private AtomicBoolean running;
+    private AtomicBoolean paused;
+    private AtomicLong timer;
 
-    public MLFQ(final MLFQBuilder builder) throws InterruptedException {
+    public MLFQ(final MLFQBuilder builder) {
         this.jobQueues = builder.jobQueues;
         this.priorityBoost = builder.priorityBoost;
         
         this.blockedJobs = new ConcurrentHashMap<>();
         this.readyJobs = new ConcurrentHashMap<>();
-        this.pendingJobs = new ConcurrentHashMap<>();
+        this.jobPIDs = new ConcurrentHashMap<>();
+
+        this.isExecutingIteration = new AtomicBoolean(false);
+        this.running = new AtomicBoolean(false);
+        this.paused = new AtomicBoolean(false);
+        this.timer = new AtomicLong(0);
     }
 
-    public void setRunning(final boolean running) { this.running = running; }
-    public void setPaused(final boolean paused) { this.paused = paused; }
+    public void setRunning(final boolean running) { this.running.set(running); }
+    public void setPaused(final boolean paused) { this.paused.set(paused); }
 
-    public boolean getRunning() { return running; }
-    public boolean getPaused() { return paused; }
-    public boolean getIsExecutingIteration() { return isExecutingIteration; }
+    public boolean getRunning() { return running.get(); }
+    public boolean getPaused() { return paused.get(); }
+    public boolean isExecuting() { return isExecutingIteration.get(); }
 
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
@@ -36,18 +43,18 @@ public class MLFQ {
         Thread commandThread = new Thread(new CommandHandler(this));
         commandThread.setDaemon(true);
         commandThread.start();
-        running = true;
+        running.set(true);
         
-        while (running) {
-            while (!paused && running) {
-                isExecutingIteration = true;
-                System.out.println("\n(Executing...)");
+        while (running.get()) {
+            while (!paused.get() && running.get()) {
+                isExecutingIteration.set(true);
+                System.out.println("\r                      \n(Executing...)");
                 executeIteration();
 
-                timer++;
+                timer.set(timer.get() + 1);
                 System.out.println("(Done) Time elapsed: " + timer + "ms");
 
-                isExecutingIteration = false;
+                isExecutingIteration.set(false);
                 System.out.print("> ");
                 Thread.sleep(2000);
             }
@@ -59,10 +66,9 @@ public class MLFQ {
     }
 
     public synchronized void addJob(final String pid, final int arrivalTime, final int endTime) {
-        if (arrivalTime < timer) {
-            System.out.println("Arrival time is too late.");
+        if (!validTimeWindow(arrivalTime, endTime)) {
             return;
-        } else if (pendingJobs.containsKey(pid)) {
+        } else if (jobPIDs.containsKey(pid)) {
             System.out.println("The pid: " + pid + " is already in use by another job, please use another pid.");
             return;
         }
@@ -72,23 +78,34 @@ public class MLFQ {
 
         jobsAtTimestamp.add(job);
         readyJobs.put(arrivalTime, jobsAtTimestamp);
-        pendingJobs.put(pid, job);
+        jobPIDs.put(pid, job);
     }
 
     public synchronized void addIO(final String ioName, final String pid, final int arrivalTime, final int endTime) {
-        if (arrivalTime < timer) {
-            System.out.println("Arrival time is too late.");
+        if (!validTimeWindow(arrivalTime, endTime)) {
             return;
-        } else if (!pendingJobs.containsKey(pid)) {
+        } else if (!jobPIDs.containsKey(pid)) {
             System.out.println("Job with pid: " + pid + " does not exist.");
             return;
         }
 
-        Job job = pendingJobs.get(pid);
+        Job job = jobPIDs.get(pid);
         job.ioQueue.offer(new IO(ioName, arrivalTime, endTime));
     }
 
+    private boolean validTimeWindow(final int arrivalTime, final int endTime) {
+        if (arrivalTime < timer.get()) {
+            System.out.println("Arrival time is too late.");
+            return false;
+        } else if (arrivalTime >= endTime) {
+            System.out.println("End time must be greater than the arrival time.");
+            return false;
+        } 
+
+        return true;
+    }
+
     public String getJob(final String pid) {
-        return pendingJobs.containsKey(pid) ? pendingJobs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
+        return jobPIDs.containsKey(pid) ? jobPIDs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
     }
 }
