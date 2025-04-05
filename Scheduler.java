@@ -29,8 +29,7 @@ public class Scheduler {
         }
 
         try {
-            MLFQ scheduler = new MLFQ(builder);
-            scheduler.run();
+            builder.build();
         } catch (InterruptedException ie) {
             System.out.println("Main thread was interrupted.");
         }

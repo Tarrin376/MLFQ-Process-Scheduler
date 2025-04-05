@@ -1,55 +1,97 @@
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MLFQ {
-    private CommandHandler commandHandler;
-    private List<JobQueue> jobQueues;
+    private final List<JobQueue> jobQueues;
+    private final ConcurrentHashMap<Integer, List<Job>> blockedJobs;
+    private final ConcurrentHashMap<Integer, List<Job>> readyJobs;
+    private final ConcurrentHashMap<String, Job> pendingJobs;
+    private volatile boolean isExecutingIteration = false;
 
-    private volatile boolean running;
-    private volatile boolean paused;
+    private final CommandHandler commandHandler;
+    private final int priorityBoost;
+    private long timer;
 
-    private int priorityBoost;
-    private int timer;
-
-    public MLFQ(MLFQBuilder builder) {
+    public MLFQ(final MLFQBuilder builder) throws InterruptedException {
         this.jobQueues = builder.jobQueues;
         this.priorityBoost = builder.priorityBoost;
+        
+        this.blockedJobs = new ConcurrentHashMap<>();
+        this.readyJobs = new ConcurrentHashMap<>();
+        this.pendingJobs = new ConcurrentHashMap<>();
         this.commandHandler = new CommandHandler(this);
+        run();
     }
 
-    public void run() throws InterruptedException {
+    public boolean getIsExecutingIteration() {
+        return isExecutingIteration;
+    }
+
+    private void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
         System.out.println("\n==========================================================");
-        System.out.print("\n> ");
 
         Thread commandThread = new Thread(() -> commandHandler.listen());
         commandThread.setDaemon(true);
         commandThread.start();
-        running = true;
         
-        while (running) {
-            while (!paused && running) {
-                System.out.print("\r                          \r" + timer + "\n> ");
+        while (commandHandler.getRunning()) {
+            while (!commandHandler.getPaused() && commandHandler.getRunning()) {
+                isExecutingIteration = true;
+
+                System.out.println("\n(Executing...)");
                 executeIteration();
-                Thread.sleep(1000);
+                System.out.println("(Done) Time elapsed: " + timer + "s");
+
+                isExecutingIteration = false;
+
+                System.out.print("> ");
+                Thread.sleep(2000);
                 timer++;
             }
         }
     }
 
-    private void executeIteration() {
-        // Execute 1 iteration of the MLFQ algo
+    private void executeIteration() throws InterruptedException {
+        Thread.sleep(500);
     }
 
-    public boolean getPaused() {
-        return paused;
+    public synchronized void addJob(final String pid, final int arrivalTime, final int endTime) {
+        if (arrivalTime < timer) {
+            System.out.println("Arrival time must no less than " + timer);
+            return;
+        } else if (pendingJobs.containsKey(pid)) {
+            System.out.println("The pid: " + pid + " is already in use by another job, please use another pid.");
+            return;
+        }
+
+        Job job = new Job(pid, arrivalTime, endTime);
+        List<Job> jobsAtTimestamp = readyJobs.getOrDefault(arrivalTime, new ArrayList<>());
+
+        jobsAtTimestamp.add(job);
+        readyJobs.put(arrivalTime, jobsAtTimestamp);
+        pendingJobs.put(pid, job);
     }
 
-    public void pause() { paused = true; }
-    public void resume() { paused = false; }
-    public void exit() { running = false; }
+    public synchronized void addIO(final String ioName, final String pid, final int arrivalTime, final int endTime) {
+        if (arrivalTime < timer) {
+            System.out.println("Arrival time must no less than " + timer);
+            return;
+        } else if (!pendingJobs.containsKey(pid)) {
+            System.out.println("Job with pid: " + pid + " does not exist.");
+            return;
+        }
+
+        Job job = pendingJobs.get(pid);
+        job.ioQueue.offer(new IO(ioName, arrivalTime, endTime));
+    }
+
+    public String getJob(final String pid) {
+        return pendingJobs.containsKey(pid) ? pendingJobs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
+    }
 
     public static class MLFQBuilder {
-        private List<JobQueue> jobQueues;
+        private final List<JobQueue> jobQueues;
         private int priorityBoost;
 
         public MLFQBuilder() {
@@ -57,17 +99,17 @@ public class MLFQ {
             this.priorityBoost = -1;
         }
 
-        public MLFQBuilder setPriorityBoost(int priorityBoost) {
+        public MLFQBuilder setPriorityBoost(final int priorityBoost) {
             this.priorityBoost = priorityBoost;
             return this;
         }
 
-        public MLFQBuilder addJobQueue(int allotment, int quantum) {
+        public MLFQBuilder addJobQueue(final int allotment, final int quantum) {
             this.jobQueues.add(new JobQueue(allotment, quantum));
             return this;
         }
 
-        public MLFQ build() {
+        public MLFQ build() throws InterruptedException {
             return new MLFQ(this);
         }
     }

@@ -1,46 +1,65 @@
 import java.util.Scanner;
 
 public class CommandHandler {
+    private volatile boolean running = true;
+    private volatile boolean paused;
+
     private Scanner scanner;
     private MLFQ scheduler;
 
-    public CommandHandler(MLFQ scheduler) {
+    public CommandHandler(final MLFQ scheduler) {
         this.scanner = new Scanner(System.in);
         this.scheduler = scheduler;
     }
 
+    public boolean getRunning() { return running; }
+    public boolean getPaused() { return paused; }
+
     public void listen() {
         while (true) {
-            if (scheduler.getPaused()) {
-                System.out.print("\n> ");
+            if (paused) {
+                System.out.print("> ");
             }
-
+            
             String command = scanner.nextLine();
-            String[] parts = command.split(" ");
-
-            if (parts.length == 0) {
+            while (scheduler.getIsExecutingIteration()) {
                 continue;
             }
 
-            switch (parts[0].toLowerCase()) {
-                case "help":
-                    help();
-                    break;
-                case "-p":
-                    scheduler.pause();
-                    break;
-                case "-r":
-                    scheduler.resume();
-                    break;
-                case "-e":
-                    scheduler.exit();
-                    break;
+            String[] parts = command.split(" ");
+            if (parts.length > 0) {
+                if (paused) executeCommand(parts);
+                else if (parts[0].equals("-p")) paused = true;
             }
         }
     }
 
-    public void executePauseTimeCommands() {
-
+    public void executeCommand(final String[] command) {
+        switch (command[0].toLowerCase()) {
+            case "help":
+                help();
+                break;
+            case "add-job":
+                scheduler.addJob(command[1], Integer.parseInt(command[2]), Integer.parseInt(command[3]));
+                break;
+            case "add-io":
+                scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
+                break;
+            case "show-queues":
+                break;
+            case "show-job":
+                System.out.println(scheduler.getJob(command[1]));
+                break;
+            case "resume":
+                paused = false;
+                break;
+            case "exit":
+                running = false;
+                break;
+            default:
+                System.out.println("Not a valid command, type 'help' for commands.");
+                break;
+        }
     }
 
     public void help() {
@@ -49,30 +68,30 @@ public class CommandHandler {
                         "==========================================================\r\n" + //
                         "\r\n" + //
                         "Process Management:\r\n" + //
-                        "  add-process <pid> <arrivalTime> <burstTime>\r\n" + //
-                        "      - Adds a new process to the system.\r\n" + //
-                        "      - Example: add-process P1 0 20\r\n" + //
+                        "  add-job <pid> <arrival_time> <end_time>\r\n" + //
+                        "      - Adds a new job to the system.\r\n" + //
+                        "      - Example: add-job P1 0 20\r\n" + //
                         "\r\n" + //
-                        "  add-io <io_name> <pid> <arrivalTime> <duration>\r\n" + //
-                        "      - Adds an I/O event for a process.\r\n" + //
+                        "  add-io <io_name> <pid> <arrival_time> <end_time>\r\n" + //
+                        "      - Adds an I/O event for a job.\r\n" + //
                         "      - Example: add-io upload-file P1 5 10\r\n" + //
                         "\r\n" + //
                         "System Information:\r\n" + //
                         "  show-queues\r\n" + //
                         "      - Displays the current state of all job queues.\r\n" + //
                         "\r\n" + //
-                        "  show-process <pid>\r\n" + //
-                        "      - Displays details of a specific process.\r\n" + //
-                        "      - Example: show-process P1\r\n" + //
+                        "  show-job <pid>\r\n" + //
+                        "      - Displays details of a specific job.\r\n" + //
+                        "      - Example: show-job P1\r\n" + //
                         "\r\n" + //
                         "Simulation Controls:\r\n" + //
                         "  -p\r\n" + //
-                        "      - Pauses the simulation.\r\n" + //
+                        "      - Pauses the simulation (only command that can be used during runtime).\r\n" + //
                         "\r\n" + //
-                        "  -r\r\n" + //
+                        "  resume\r\n" + //
                         "      - Resumes the simulation after a pause.\r\n" + //
                         "\r\n" + //
-                        "  -e\r\n" + //
+                        "  exit\r\n" + //
                         "      - Stops the simulation and exits the program.");
     }
 }

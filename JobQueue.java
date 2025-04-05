@@ -1,12 +1,13 @@
 import java.util.*;
 
 public class JobQueue {
-    private Deque<Job> jobs;
-    private Map<Integer, List<Job>> blockedJobs;
-    private int allotment;
-    private int quantum;
+    private final Map<Integer, List<Job>> blockedJobs;
+    public final Deque<Job> jobs;
 
-    public JobQueue(int allotment, int quantum) {
+    private final int allotment;
+    private final int quantum;
+
+    public JobQueue(final int allotment, final int quantum) {
         this.jobs = new ArrayDeque<>();
         this.blockedJobs = new HashMap<>();
         this.allotment = allotment;
