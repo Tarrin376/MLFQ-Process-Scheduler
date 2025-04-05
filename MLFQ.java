@@ -26,12 +26,6 @@ public class MLFQ {
         running = new AtomicBoolean(true);
     }
 
-    public void setRunning(boolean running) { this.running.set(running); }
-    public boolean getRunning() { return running.get(); }
-
-    public void setPaused(boolean paused) { this.paused.set(paused); }
-    public boolean getPaused() { return paused.get(); }
-
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
         System.out.println("\n==========================================================");
@@ -39,8 +33,8 @@ public class MLFQ {
         Thread enterPauseListener = new Thread(new EnterPauseListener(this));
         enterPauseListener.setDaemon(true);
         enterPauseListener.start();
-
         running.set(true);
+
         while (running.get()) {
             if (paused.get()) {
                 commandHandler.run();
@@ -89,16 +83,22 @@ public class MLFQ {
     }
 
     private boolean validTimeWindow(final int arrivalTime, final int endTime) {
-        if (arrivalTime < 0) {
-            System.out.println("Arrival time must be a non-negative integer.");
+        if (arrivalTime < timer) {
+            System.out.println("Arrival time must be on or after " + timer);
             return false;
-        } if (arrivalTime >= endTime) {
+        } else if (arrivalTime >= endTime) {
             System.out.println("End time must be greater than the arrival time.");
             return false;
         } 
 
         return true;
     }
+
+    public void setRunning(boolean running) { this.running.set(running); }
+    public boolean getRunning() { return running.get(); }
+
+    public void setPaused(boolean paused) { this.paused.set(paused); }
+    public boolean getPaused() { return paused.get(); }
 
     public String getJob(final String pid) {
         return jobPIDs.containsKey(pid) ? jobPIDs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
