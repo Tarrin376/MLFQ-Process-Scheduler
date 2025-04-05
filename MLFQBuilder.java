@@ -1,12 +1,11 @@
 import java.util.*;
 
 public class MLFQBuilder {
-    public final List<JobQueue> jobQueues;
+    public final LinkedList<JobQueue> jobQueues;
     public int priorityBoost;
 
     public MLFQBuilder() {
-        this.jobQueues = new ArrayList<>();
-        this.priorityBoost = -1;
+        jobQueues = new LinkedList<>();
     }
 
     public MLFQBuilder setPriorityBoost(final int priorityBoost) {
@@ -15,7 +14,7 @@ public class MLFQBuilder {
     }
 
     public MLFQBuilder addJobQueue(final int allotment, final int quantum) {
-        this.jobQueues.add(new JobQueue(allotment, quantum));
+        jobQueues.add(new JobQueue(jobQueues.size() + 1, allotment, quantum));
         return this;
     }
 

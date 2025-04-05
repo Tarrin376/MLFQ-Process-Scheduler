@@ -14,7 +14,7 @@ public class IO {
         return String.format("{ name: \"%s\", startTime: %d, endTime: %d }", name, startTime, endTime);
     }
 
-    public int getStartTime() {
-        return startTime;
-    }
+    public int getStartTime() { return startTime; }
+    public int getEndTime() { return endTime; }
+    public String getName() { return name; }
 }

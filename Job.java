@@ -19,10 +19,16 @@ public class Job {
     private int quantumUsed;
 
     public Job(final String pid, final int startTime, final int endTime) {
-        ioQueue = new PriorityQueue<>((a, b) -> Integer.compare(a.getStartTime(), b.getStartTime()));
+        ioQueue = new PriorityQueue<>((a, b) -> Long.compare(a.getStartTime(), b.getStartTime()));
         this.pid = pid;
         this.startTime = startTime;
         this.endTime = endTime;
+    }
+
+    public void updateJobProgress() {
+        progress++;
+        allotmentUsed++;
+        quantumUsed++;
     }
 
     @Override
@@ -46,4 +52,19 @@ public class Job {
         sb.append("}");
         return sb.toString();
     }
+
+    public int getStartTime() { return startTime; }
+    public int getEndTime() { return endTime; }
+
+    public int getProgress() { return progress; }
+    public int getAllotmentUsed() { return allotmentUsed; }
+    public int getQuantumUsed() { return quantumUsed; }
+
+    public void setProgress(int progress) { this.progress = progress; };
+    public void setAllotmentUsed(int allotmentUsed) { this.allotmentUsed = allotmentUsed; }
+    public void setQuantumUsed(int quantumUsed) { this.quantumUsed = quantumUsed; }
+    public void setState(JobState state) { this.state = state; }
+
+    public String getPID() { return pid; }
+    public JobState getState() { return state; }
 }
