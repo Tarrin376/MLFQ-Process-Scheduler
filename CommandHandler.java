@@ -1,9 +1,6 @@
 import java.util.Scanner;
 
-public class CommandHandler {
-    private volatile boolean running = true;
-    private volatile boolean paused;
-
+public class CommandHandler implements Runnable {
     private Scanner scanner;
     private MLFQ scheduler;
 
@@ -12,24 +9,22 @@ public class CommandHandler {
         this.scheduler = scheduler;
     }
 
-    public boolean getRunning() { return running; }
-    public boolean getPaused() { return paused; }
-
-    public void listen() {
+    public void run() {
         while (true) {
-            if (paused) {
+            if (scheduler.getPaused()) {
                 System.out.print("> ");
             }
-            
-            String command = scanner.nextLine();
+
             while (scheduler.getIsExecutingIteration()) {
                 continue;
             }
 
+            String command = scanner.nextLine();
             String[] parts = command.split(" ");
+
             if (parts.length > 0) {
-                if (paused) executeCommand(parts);
-                else if (parts[0].equals("-p")) paused = true;
+                if (scheduler.getPaused()) executeCommand(parts);
+                else if (parts[0].equals("-p")) scheduler.setPaused(true);
             }
         }
     }
@@ -51,10 +46,10 @@ public class CommandHandler {
                 System.out.println(scheduler.getJob(command[1]));
                 break;
             case "resume":
-                paused = false;
+                scheduler.setPaused(false);
                 break;
             case "exit":
-                running = false;
+                scheduler.setRunning(false);
                 break;
             default:
                 System.out.println("Not a valid command, type 'help' for commands.");

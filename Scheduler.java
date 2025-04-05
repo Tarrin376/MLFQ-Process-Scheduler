@@ -3,7 +3,7 @@ import java.util.Scanner;
 public class Scheduler {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        MLFQ.MLFQBuilder builder = new MLFQ.MLFQBuilder();
+        MLFQBuilder builder = new MLFQBuilder();
 
         System.out.println("==========================================================\r\n" +
                         "MULTI-LEVEL FEEDBACK QUEUE SCHEDULER  \r\n" +
@@ -29,7 +29,8 @@ public class Scheduler {
         }
 
         try {
-            builder.build();
+            MLFQ scheduler = builder.build();
+            scheduler.run();
         } catch (InterruptedException ie) {
             System.out.println("Main thread was interrupted.");
         }
