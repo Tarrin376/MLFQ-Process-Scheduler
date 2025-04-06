@@ -1,5 +1,5 @@
-import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.*;
 
 public class MLFQ {
     private final LinkedList<JobQueue> jobQueues;
@@ -13,8 +13,8 @@ public class MLFQ {
     private int timer;
 
     public MLFQ(final MLFQBuilder builder) {
-        jobQueues = builder.jobQueues;
         priorityBoost = builder.priorityBoost;
+        jobQueues = builder.jobQueues;
         
         readyJobs = new HashMap<>();
         jobPIDs = new HashMap<>();
@@ -24,9 +24,22 @@ public class MLFQ {
         running = new AtomicBoolean(true);
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n=================================== MLFQ Queues ===================================");
+
+        for (JobQueue queue : jobQueues) {
+            sb.append(queue);
+        }
+
+        sb.append("===================================================================================");
+        return sb.toString();
+    }
+
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
-        System.out.println("\n==========================================================");
+        System.out.println("\n===================================================================================");
 
         Thread enterPauseListener = new Thread(new EnterPauseListener(this));
         enterPauseListener.setDaemon(true);
@@ -39,16 +52,14 @@ public class MLFQ {
                 continue;
             }
 
-            System.out.println("\n(Executing...)");
             runIteration();
-
             timer++;
-            System.out.println("(Done) Time elapsed: " + timer + "ms");
             Thread.sleep(1000);
         }
     }
 
     private void runIteration() {
+        System.out.println("\n[" + AnsiColour.GREEN + "Time:" + AnsiColour.RESET + " " + timer + "ms]");
         if (priorityBoost > 0 && timer % priorityBoost == 0) {
             triggerPriorityBoost();
         }
@@ -58,28 +69,29 @@ public class MLFQ {
 
         JobQueue firstQueue = findFirstUnemptyQueue();
         if (firstQueue == null) {
-            System.out.println("CPU is idle...");
-            return;
+            System.out.println("  -> No job scheduled - CPU is idle.");
+        } else {
+            processJob(firstQueue.jobs.getFirst(), firstQueue);
         }
 
-        processJob(firstQueue.jobs.getFirst(), firstQueue);
+        System.out.println("\n-----------------------------------------------------------------------------------");
     }
 
-    private void processJob(Job job, JobQueue queue) {
+    private void processJob(final Job job, final JobQueue queue) {
         if (job.getState() == JobState.READY) {
             job.setState(JobState.RUNNING);
         }
 
-        System.out.println("pid: " + job.getPID() + " is running!");
+        System.out.println(job.getJobMessage("Running on queue #" + queue.getQueueNumber()));
         job.updateJobProgress();
 
-        if (job.getProgress() == job.getEndTime() - job.getStartTime() + 1) {
-            System.out.println("pid: " + job.getPID() + " has now finished!");
+        if (job.getProgress() == job.getEndTime() - job.getStartTime()) {
+            System.out.println(job.getJobMessage("Completed"));
             queue.jobs.removeFirst();
+            jobPIDs.remove(job.getPID());
         } else if (job.getAllotmentUsed() == queue.getAllotment() && queue.getQueueNumber() < jobQueues.size()) {
-            System.out.println("pid: " + job.getPID() + " reached the allotment limit of " + queue.getAllotment() + "ms on queue No. " + 
-            queue.getQueueNumber() + ". Moving down to queue No. " + (queue.getQueueNumber() + 1) + "...");
-
+            System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms). Moved to back of queue #" + (queue.getQueueNumber() + 1)));
+            job.setState(JobState.READY);
             job.setAllotmentUsed(0);
             job.setQuantumUsed(0);
 
@@ -87,10 +99,10 @@ public class MLFQ {
             nextJobQueue.jobs.addLast(job);
             queue.jobs.removeFirst();
         } else if (job.getQuantumUsed() == queue.getQuantum()) {
-            System.out.println("pid: " + job.getPID() + " reached the quantum limit of " + queue.getQuantum() + "ms on queue No. " + 
-            queue.getQueueNumber() + ". Moving to the back of the queue...");
-
+            System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms). Moved to back of queue #" + queue.getQueueNumber()));
+            job.setState(JobState.READY);
             job.setQuantumUsed(0);
+
             queue.jobs.removeFirst();
             queue.jobs.addLast(job);
         }
@@ -102,17 +114,17 @@ public class MLFQ {
                 Job job = queue.jobs.getFirst();
                 IO io = job.ioQueue.size() > 0 ? job.ioQueue.peek() : null;
 
-                if (io == null || io.getStartTime() < timer) {
+                if (io == null || io.getStartTime() != timer) {
                     return queue;
                 }
-
-                System.out.println("pid: " + job.getPID() + " -> IO: " + io.getName() + " has started running!");
+                
+                System.out.println(job.getJobMessage("Started IO \"" + io.getName() + "\""));
                 job.setState(JobState.BLOCKED);
                 
-                List<Job> blockedJobs = queue.blockedJobs.getOrDefault(io.getEndTime() + 1, new ArrayList<>());
+                List<Job> blockedJobs = queue.blockedJobs.getOrDefault(io.getEndTime(), new ArrayList<>());
                 blockedJobs.add(job);
 
-                queue.blockedJobs.put(io.getEndTime() + 1, blockedJobs);
+                queue.blockedJobs.put(io.getEndTime(), blockedJobs);
                 queue.jobs.removeFirst();
             }
         }
@@ -126,18 +138,19 @@ public class MLFQ {
             for (Job job : blockedJobs) {
                 IO finishedIO = job.ioQueue.poll();
                 IO nextIO = job.ioQueue.peek();
-                System.out.println("pid: " + job.getPID() + " -> IO: " + finishedIO.getName() + " has finished at " + timer + "ms!");
+                System.out.println(job.getJobMessage("Completed IO \"" + finishedIO.getName() + "\""));
 
                 if (nextIO == null || nextIO.getStartTime() > timer) {
                     job.setState(JobState.READY);
-                    System.out.println("pid: " + job.getPID() + " is now unblocked!");
+                    System.out.println(job.getJobMessage("Unblocked and re-entered queue #" + queue.getQueueNumber()));
                     queue.jobs.addLast(job);
                 } else {
-                    System.out.println("pid: " + job.getPID() + " -> IO: " + nextIO.getName() + " has started running at " + timer + "ms!");
-                    List<Job> blockedJobsAtEnd = queue.blockedJobs.getOrDefault(nextIO.getEndTime() + 1, new ArrayList<>());
+                    System.out.println(job.getJobMessage("Started IO \"" + nextIO.getName() + "\""));
+                    int endTime = timer + (nextIO.getEndTime() - nextIO.getStartTime());
+                    List<Job> blockedJobsAtEnd = queue.blockedJobs.getOrDefault(endTime, new ArrayList<>());
 
                     blockedJobsAtEnd.add(job);
-                    queue.blockedJobs.put(nextIO.getEndTime() + 1, blockedJobsAtEnd);
+                    queue.blockedJobs.put(endTime, blockedJobsAtEnd);
                 }
             }
 
@@ -198,13 +211,13 @@ public class MLFQ {
         return true;
     }
 
-    public void setRunning(boolean running) { this.running.set(running); }
-    public boolean getRunning() { return running.get(); }
-
-    public void setPaused(boolean paused) { this.paused.set(paused); }
-    public boolean getPaused() { return paused.get(); }
-
-    public String getJob(final String pid) {
+    public String getJobOutput(final String pid) {
         return jobPIDs.containsKey(pid) ? jobPIDs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
     }
+
+    public void setRunning(final boolean running) { this.running.set(running); }
+    public boolean getRunning() { return running.get(); }
+
+    public void setPaused(final boolean paused) { this.paused.set(paused); }
+    public boolean getPaused() { return paused.get(); }
 }

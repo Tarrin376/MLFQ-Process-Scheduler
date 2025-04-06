@@ -12,7 +12,7 @@ public class EnterPauseListener implements Runnable {
         try {
             while (scheduler.getRunning()) {
                 if (System.in.available() > 0 && !scheduler.getPaused()) {
-                    System.out.println("[Simulation paused. Type 'resume' to continue.]");
+                    System.out.println("\n[Simulation paused. Type 'resume' to continue.]");
                     scheduler.setPaused(true);
                 }
 

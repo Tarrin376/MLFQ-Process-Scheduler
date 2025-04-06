@@ -34,10 +34,11 @@ public class CommandHandler {
                 scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
                 System.out.println("IO operation: " + command[1] + " has been added to the IO queue of job with pid: " + command[2]);
                 break;
-            case "show-queues":
+            case "show-mlfq":
+                System.out.println(scheduler);
                 break;
             case "show-job":
-                System.out.println(scheduler.getJob(command[1]));
+                System.out.println(scheduler.getJobOutput(command[1]));
                 break;
             case "resume":
                 scheduler.setPaused(false);
@@ -63,8 +64,8 @@ public class CommandHandler {
                         "      - Example: add-io upload-file P1 5 10\r\n" + //
                         "\r\n" + //
                         "System Information:\r\n" + //
-                        "  show-queues\r\n" + //
-                        "      - Displays the current state of all job queues.\r\n" + //
+                        "  show-mlfq\r\n" + //
+                        "      - Displays the current state of the MLFQ.\r\n" + //
                         "\r\n" + //
                         "  show-job <pid>\r\n" + //
                         "      - Displays details of a specific job.\r\n" + //

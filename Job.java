@@ -1,3 +1,4 @@
+import java.text.DecimalFormat;
 import java.util.*;
 
 enum JobState {
@@ -51,6 +52,14 @@ public class Job {
         sb.append((ioQueue.size() > 0 ? "\n  " : "") + "]\n");
         sb.append("}");
         return sb.toString();
+    }
+
+    public String getProgressPercentage() {
+        return new DecimalFormat("#.##").format(((double)progress / (endTime - startTime)) * 100) + "%";
+    }
+
+    public String getJobMessage(final String message) {
+        return "  -> " + AnsiColour.GREEN + "Job:" + AnsiColour.RESET + " [" + pid + "] " + "(progress: " + getProgressPercentage() + ") " + message;
     }
 
     public int getStartTime() { return startTime; }
