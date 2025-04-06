@@ -37,8 +37,11 @@ public class CommandHandler {
             case "show-mlfq":
                 System.out.println(scheduler);
                 break;
+            case "show-history":
+                System.out.println(scheduler.getSchedulingHistory(Integer.parseInt(command[1]), Integer.parseInt(command[2])));
+                break;
             case "show-job":
-                System.out.println(scheduler.getJobOutput(command[1]));
+                System.out.println(scheduler.getJobInfo(command[1]));
                 break;
             case "resume":
                 scheduler.setPaused(false);
@@ -66,6 +69,9 @@ public class CommandHandler {
                         "System Information:\r\n" + //
                         "  show-mlfq\r\n" + //
                         "      - Displays the current state of the MLFQ.\r\n" + //
+                        "\r\n" + //
+                        "  show-history <start_time> <end_time>\r\n" + //
+                        "      - Displays the scheduling history between the given range.\r\n" + //
                         "\r\n" + //
                         "  show-job <pid>\r\n" + //
                         "      - Displays details of a specific job.\r\n" + //

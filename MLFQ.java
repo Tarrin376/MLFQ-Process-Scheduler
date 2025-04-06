@@ -2,6 +2,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.*;
 
 public class MLFQ {
+    private final Queue<SchedulingEvent> schedulingHistory;
     private final LinkedList<JobQueue> jobQueues;
     private final Map<Integer, List<Job>> readyJobs;
     private final Map<String, Job> jobPIDs;
@@ -16,6 +17,7 @@ public class MLFQ {
         priorityBoost = builder.priorityBoost;
         jobQueues = builder.jobQueues;
         
+        schedulingHistory = new LinkedList<>();
         readyJobs = new HashMap<>();
         jobPIDs = new HashMap<>();
         commandHandler = new CommandHandler(this);
@@ -27,19 +29,19 @@ public class MLFQ {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n==================================== MLFQ Queues ====================================");
+        sb.append("\n===================================== MLFQ Queues =====================================");
 
         for (JobQueue queue : jobQueues) {
             sb.append(queue);
         }
 
-        sb.append("=====================================================================================");
+        sb.append("=======================================================================================");
         return sb.toString();
     }
 
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
-        System.out.println("\n=====================================================================================");
+        System.out.println("\n=======================================================================================");
 
         Thread enterPauseListener = new Thread(new EnterPauseListener(this));
         enterPauseListener.setDaemon(true);
@@ -69,12 +71,13 @@ public class MLFQ {
 
         JobQueue firstQueue = findFirstUnemptyQueue();
         if (firstQueue == null) {
+            schedulingHistory.add(null);
             System.out.println("  -> No job scheduled - CPU is idle.");
         } else {
             processJob(firstQueue.jobs.getFirst(), firstQueue);
         }
 
-        System.out.println("\n-------------------------------------------------------------------------------------");
+        System.out.println("\n---------------------------------------------------------------------------------------");
     }
 
     private void processJob(final Job job, final JobQueue queue) {
@@ -83,6 +86,7 @@ public class MLFQ {
         }
 
         System.out.println(job.getJobMessage("Running on queue #" + queue.getQueueNumber()));
+        schedulingHistory.add(new SchedulingEvent(job.getPID(), queue.getQueueNumber(), false));
         job.updateJobProgress();
 
         if (job.getProgress() == job.getEndTime() - job.getStartTime()) {
@@ -224,8 +228,21 @@ public class MLFQ {
         return true;
     }
 
-    public String getJobOutput(final String pid) {
+    public String getJobInfo(final String pid) {
         return jobPIDs.containsKey(pid) ? jobPIDs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
+    }
+
+    public String getSchedulingHistory(int start, int end) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("\n=============================== MLFQ Scheduling History ===============================");
+        sb.append("\n\nTime ->");
+
+        for (int i = start; i <= end; i++) {
+            sb.append("   " + i);
+        }
+
+        return sb.toString();
     }
 
     public void setRunning(final boolean running) { this.running.set(running); }
@@ -233,4 +250,5 @@ public class MLFQ {
 
     public void setPaused(final boolean paused) { this.paused.set(paused); }
     public boolean getPaused() { return paused.get(); }
+    public int getTimer() { return timer; }
 }

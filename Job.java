@@ -42,7 +42,7 @@ public class Job {
         sb.append("  Progress: ").append(progress).append("\n");
         sb.append("  Allotment Used: ").append(allotmentUsed).append("\n");
         sb.append("  Quantum Used: ").append(quantumUsed).append("\n");
-        sb.append("  State: ").append(state).append("\n");
+        sb.append("  State: ").append(getJobStateColour()).append("\n");
         sb.append("  IO Queue: [");
 
         for (IO io : ioQueue) {
@@ -52,6 +52,11 @@ public class Job {
         sb.append((ioQueue.size() > 0 ? "\n  " : "") + "]\n");
         sb.append("}");
         return sb.toString();
+    }
+
+    public String getJobStateColour() {
+        String colour = state == JobState.RUNNING ? AnsiColour.GREEN : state == JobState.READY ? AnsiColour.YELLOW : AnsiColour.RED;
+        return colour + state.name() + AnsiColour.RESET;
     }
 
     public String getProgressPercentage() {
