@@ -27,19 +27,19 @@ public class MLFQ {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n=================================== MLFQ Queues ===================================");
+        sb.append("\n==================================== MLFQ Queues ====================================");
 
         for (JobQueue queue : jobQueues) {
             sb.append(queue);
         }
 
-        sb.append("===================================================================================");
+        sb.append("=====================================================================================");
         return sb.toString();
     }
 
     public void run() throws InterruptedException {
         System.out.println("\nSimulation started. Type 'help' for commands.");
-        System.out.println("\n===================================================================================");
+        System.out.println("\n=====================================================================================");
 
         Thread enterPauseListener = new Thread(new EnterPauseListener(this));
         enterPauseListener.setDaemon(true);
@@ -60,7 +60,7 @@ public class MLFQ {
 
     private void runIteration() {
         System.out.println("\n[" + AnsiColour.GREEN + "Time:" + AnsiColour.RESET + " " + timer + "ms]");
-        if (priorityBoost > 0 && timer % priorityBoost == 0) {
+        if (priorityBoost > 0 && timer > 0 && timer % priorityBoost == 0) {
             triggerPriorityBoost();
         }
 
@@ -74,7 +74,7 @@ public class MLFQ {
             processJob(firstQueue.jobs.getFirst(), firstQueue);
         }
 
-        System.out.println("\n-----------------------------------------------------------------------------------");
+        System.out.println("\n-------------------------------------------------------------------------------------");
     }
 
     private void processJob(final Job job, final JobQueue queue) {
@@ -90,7 +90,7 @@ public class MLFQ {
             queue.jobs.removeFirst();
             jobPIDs.remove(job.getPID());
         } else if (job.getAllotmentUsed() == queue.getAllotment() && queue.getQueueNumber() < jobQueues.size()) {
-            System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms). Moved to back of queue #" + (queue.getQueueNumber() + 1)));
+            System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
             job.setState(JobState.READY);
             job.setAllotmentUsed(0);
             job.setQuantumUsed(0);
@@ -99,7 +99,7 @@ public class MLFQ {
             nextJobQueue.jobs.addLast(job);
             queue.jobs.removeFirst();
         } else if (job.getQuantumUsed() == queue.getQuantum()) {
-            System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms). Moved to back of queue #" + queue.getQueueNumber()));
+            System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
             job.setState(JobState.READY);
             job.setQuantumUsed(0);
 
@@ -168,7 +168,20 @@ public class MLFQ {
     }
 
     private void triggerPriorityBoost() {
-        // To be implemented... move all jobs to the first queue
+        JobQueue firstQueue = jobQueues.get(0);
+
+        for (JobQueue queue : jobQueues) {
+            int size = queue.jobs.size();
+            for (int i = 0; i < size; i++) {
+                Job job = queue.jobs.removeFirst();
+                firstQueue.jobs.addLast(job);
+
+                job.setQuantumUsed(0);
+                job.setAllotmentUsed(0);
+            }
+        }
+
+        System.out.println("  -> " + AnsiColour.PURPLE + "Priority boost triggered." + AnsiColour.RESET);
     }
 
     public void addJob(final String pid, final int arrivalTime, final int endTime) {

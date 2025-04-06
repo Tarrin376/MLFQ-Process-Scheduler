@@ -59,7 +59,8 @@ public class Job {
     }
 
     public String getJobMessage(final String message) {
-        return "  -> " + AnsiColour.GREEN + "Job:" + AnsiColour.RESET + " [" + pid + "] " + "(progress: " + getProgressPercentage() + ") " + message;
+        return "  -> " + AnsiColour.GREEN + "Job:" + AnsiColour.RESET + " [" + pid + "] " + "(progress: " + 
+        AnsiColour.CYAN + getProgressPercentage() + AnsiColour.RESET + ") " + message;
     }
 
     public int getStartTime() { return startTime; }

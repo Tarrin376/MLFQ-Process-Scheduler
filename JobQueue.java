@@ -22,26 +22,24 @@ public class JobQueue {
         StringBuilder sb = new StringBuilder();
         
         if (queueNumber > 1) {
-            sb.append("-----------------------------------------------------------------------------------");
+            sb.append("-------------------------------------------------------------------------------------");
         }
 
         sb.append("\n\n" + AnsiColour.GREEN + "Queue " + queueNumber + ":" + AnsiColour.RESET + "\n");
         sb.append("  [Ready / Running]\n");
 
         for (Job job : jobs) {
-            sb.append("    |-- " + job.getPID() + " | State: " + job.getState().name() + " | Progress: " + 
-            job.getProgressPercentage() + " | Time in Queue: " + job.getAllotmentUsed() + "\n");
+            sb.append("    |__ " + job.getPID() + " | State: " + job.getState().name() + " | Progress: " + 
+            job.getProgressPercentage() + " | Time in Queue: " + job.getAllotmentUsed() + "ms\n");
         }
 
-        sb.append("\n  [Blocked]\n");
+        sb.append("\n  [Blocked]");
         for (Map.Entry<Integer, List<Job>> entry : blockedJobs.entrySet()) {
             int blockedUntil = entry.getKey();
             List<Job> blocked = entry.getValue();
 
-            for (int i = 0; i < blocked.size(); i++) {
-                Job job = blocked.get(i);
-                sb.append("    |-- " + job.getPID() + " | Blocked Until: " + blockedUntil + "ms | IO: \"" + job.ioQueue.peek().getName() + "\"");
-                sb.append(i < blocked.size() - 1 ? "\n" : "");
+            for (Job job : blocked) {
+                sb.append("\n    |__ " + job.getPID() + " | Blocked Until: " + blockedUntil + "ms | IO: \"" + job.ioQueue.peek().getName() + "\"");
             }
         }
 
