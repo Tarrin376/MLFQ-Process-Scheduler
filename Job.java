@@ -4,32 +4,31 @@ import java.util.*;
 enum JobState {
     READY,
     RUNNING,
-    BLOCKED
+    BLOCKED,
+    COMPLETED
 }
 
 public class Job {
     public final PriorityQueue<IO> ioQueue;
     private final String pid;
 
-    private final int startTime;
+    private final int arrivalTime;
     private final int endTime;
+
+    private int turnaroundTime;
+    private int responseTime;
+    private int waitingTime;
 
     private JobState state = JobState.READY;
     private int progress;
     private int allotmentUsed;
     private int quantumUsed;
 
-    public Job(final String pid, final int startTime, final int endTime) {
+    public Job(final String pid, final int arrivalTime, final int endTime) {
         ioQueue = new PriorityQueue<>((a, b) -> Long.compare(a.getStartTime(), b.getStartTime()));
         this.pid = pid;
-        this.startTime = startTime;
+        this.arrivalTime = arrivalTime;
         this.endTime = endTime;
-    }
-
-    public void updateJobProgress() {
-        progress++;
-        allotmentUsed++;
-        quantumUsed++;
     }
 
     @Override
@@ -37,11 +36,11 @@ public class Job {
         StringBuilder sb = new StringBuilder();
         sb.append("Job {\n");
         sb.append("  PID: ").append(pid).append("\n");
-        sb.append("  Start Time: ").append(startTime).append("\n");
-        sb.append("  End Time: ").append(endTime).append("\n");
+        sb.append("  Arrival Time: ").append(arrivalTime).append("ms\n");
+        sb.append("  End Time: ").append(endTime).append("ms\n");
         sb.append("  Progress: ").append(progress).append("\n");
-        sb.append("  Allotment Used: ").append(allotmentUsed).append("\n");
-        sb.append("  Quantum Used: ").append(quantumUsed).append("\n");
+        sb.append("  Allotment Used: ").append(allotmentUsed).append("ms\n");
+        sb.append("  Quantum Used: ").append(quantumUsed).append("ms\n");
         sb.append("  State: ").append(getJobStateColour()).append("\n");
         sb.append("  IO Queue: [");
 
@@ -54,32 +53,65 @@ public class Job {
         return sb.toString();
     }
 
+    public void process() {
+        progress++;
+        quantumUsed++;
+        allotmentUsed++;
+    }
+
+    public void block(IO io) {
+        state = JobState.BLOCKED;
+        waitingTime += io.getEndTime() - io.getStartTime();
+    }
+
     public String getJobStateColour() {
-        String colour = state == JobState.RUNNING ? AnsiColour.GREEN : state == JobState.READY ? AnsiColour.YELLOW : AnsiColour.RED;
-        return colour + state.name() + AnsiColour.RESET;
+        String colour;
+        switch (state) {
+            case RUNNING:
+                colour = TextColour.PURPLE;
+                break;
+            case COMPLETED:
+                colour = TextColour.GREEN;
+                break;
+            case READY:
+                colour = TextColour.YELLOW;
+                break;
+            default:
+                colour = TextColour.RED;
+                break;
+        }
+
+        return colour + state.name() + TextColour.RESET;
     }
 
     public String getProgressPercentage() {
-        return new DecimalFormat("#.##").format(((double)progress / (endTime - startTime)) * 100) + "%";
+        return new DecimalFormat("#.##").format(((double)progress / (endTime - arrivalTime)) * 100) + "%";
     }
 
     public String getJobMessage(final String message) {
-        return "  -> " + AnsiColour.GREEN + "Job:" + AnsiColour.RESET + " [" + pid + "] " + "(progress: " + 
-        AnsiColour.CYAN + getProgressPercentage() + AnsiColour.RESET + ") " + message;
+        return "  -> " + TextColour.GREEN + "Job:" + TextColour.RESET + " [" + pid + "] " + "(progress: " + 
+        TextColour.CYAN + getProgressPercentage() + TextColour.RESET + ") " + message;
     }
 
-    public int getStartTime() { return startTime; }
+    public int getArrivalTime() { return arrivalTime; }
     public int getEndTime() { return endTime; }
+
+    public int getTurnaroundTime() { return turnaroundTime; }
+    public int getResponseTime() { return responseTime; }
+    public int getWaitingTime() { return waitingTime; }
+
+    public void setTurnaroundTime(final int turnaroundTime) { this.turnaroundTime = turnaroundTime; }
+    public void setResponseTime(final int responseTime) { this.responseTime = responseTime; }
 
     public int getProgress() { return progress; }
     public int getAllotmentUsed() { return allotmentUsed; }
     public int getQuantumUsed() { return quantumUsed; }
 
-    public void setProgress(int progress) { this.progress = progress; };
-    public void setAllotmentUsed(int allotmentUsed) { this.allotmentUsed = allotmentUsed; }
-    public void setQuantumUsed(int quantumUsed) { this.quantumUsed = quantumUsed; }
-    public void setState(JobState state) { this.state = state; }
+    public void setAllotmentUsed(final int allotmentUsed) { this.allotmentUsed = allotmentUsed; }
+    public void setQuantumUsed(final int quantumUsed) { this.quantumUsed = quantumUsed; }
 
     public String getPID() { return pid; }
+
     public JobState getState() { return state; }
+    public void setState(final JobState state) { this.state = state; }
 }

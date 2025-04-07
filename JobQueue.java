@@ -25,12 +25,12 @@ public class JobQueue {
             sb.append("---------------------------------------------------------------------------------------");
         }
 
-        sb.append("\n\n" + AnsiColour.GREEN + "Queue " + queueNumber + ":" + AnsiColour.RESET + "\n");
+        sb.append("\n\n" + TextColour.GREEN + "Queue " + queueNumber + ":" + TextColour.RESET + "\n");
         sb.append("  [Ready / Running]\n");
 
         for (Job job : jobs) {
-            sb.append("    |__ " + job.getPID() + " | State: " + job.getJobStateColour() + " | Progress: " + AnsiColour.CYAN +
-            job.getProgressPercentage() + AnsiColour.RESET + " | Time in Queue: " + job.getAllotmentUsed() + "ms\n");
+            sb.append("    |__ " + job.getPID() + " | State: " + job.getJobStateColour() + " | Progress: " + TextColour.CYAN +
+            job.getProgressPercentage() + TextColour.RESET + " | Time in Queue: " + job.getAllotmentUsed() + "ms\n");
         }
 
         sb.append("\n  [Blocked]");

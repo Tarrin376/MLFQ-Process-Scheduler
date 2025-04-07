@@ -2,22 +2,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.*;
 
 public class MLFQ {
-    private final Queue<SchedulingEvent> schedulingHistory;
     private final LinkedList<JobQueue> jobQueues;
     private final Map<Integer, List<Job>> readyJobs;
     private final Map<String, Job> jobPIDs;
+
     private final CommandHandler commandHandler;
     private final int priorityBoost;
 
-    private AtomicBoolean paused;
-    private AtomicBoolean running;
+    private volatile AtomicBoolean paused;
+    private volatile AtomicBoolean running;
+
+    private int completedJobs;
+    private int startedJobs;
+    private int activeTime;
     private int timer;
 
     public MLFQ(final MLFQBuilder builder) {
         priorityBoost = builder.priorityBoost;
         jobQueues = builder.jobQueues;
-        
-        schedulingHistory = new LinkedList<>();
+
         readyJobs = new HashMap<>();
         jobPIDs = new HashMap<>();
         commandHandler = new CommandHandler(this);
@@ -61,7 +64,7 @@ public class MLFQ {
     }
 
     private void runIteration() {
-        System.out.println("\n[" + AnsiColour.GREEN + "Time:" + AnsiColour.RESET + " " + timer + "ms]");
+        System.out.println("\n[" + TextColour.GREEN + "Time:" + TextColour.RESET + " " + timer + "ms]");
         if (priorityBoost > 0 && timer > 0 && timer % priorityBoost == 0) {
             triggerPriorityBoost();
         }
@@ -70,11 +73,11 @@ public class MLFQ {
         checkBlockedJobs();
 
         JobQueue firstQueue = findFirstUnemptyQueue();
-        if (firstQueue == null) {
-            schedulingHistory.add(null);
-            System.out.println("  -> No job scheduled - CPU is idle.");
-        } else {
+        if (firstQueue != null) {
             processJob(firstQueue.jobs.getFirst(), firstQueue);
+            activeTime++;
+        } else {
+            System.out.println("  -> No job scheduled - CPU is idle.");
         }
 
         System.out.println("\n---------------------------------------------------------------------------------------");
@@ -85,31 +88,65 @@ public class MLFQ {
             job.setState(JobState.RUNNING);
         }
 
-        System.out.println(job.getJobMessage("Running on queue #" + queue.getQueueNumber()));
-        schedulingHistory.add(new SchedulingEvent(job.getPID(), queue.getQueueNumber(), false));
-        job.updateJobProgress();
-
-        if (job.getProgress() == job.getEndTime() - job.getStartTime()) {
-            System.out.println(job.getJobMessage("Completed"));
-            queue.jobs.removeFirst();
-            jobPIDs.remove(job.getPID());
-        } else if (job.getAllotmentUsed() == queue.getAllotment() && queue.getQueueNumber() < jobQueues.size()) {
-            System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
-            job.setState(JobState.READY);
-            job.setAllotmentUsed(0);
-            job.setQuantumUsed(0);
-
-            JobQueue nextJobQueue = jobQueues.get(queue.getQueueNumber());
-            nextJobQueue.jobs.addLast(job);
-            queue.jobs.removeFirst();
-        } else if (job.getQuantumUsed() == queue.getQuantum()) {
-            System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
-            job.setState(JobState.READY);
-            job.setQuantumUsed(0);
-
-            queue.jobs.removeFirst();
-            queue.jobs.addLast(job);
+        if (job.getProgress() == 0) {
+            job.setResponseTime(timer - job.getArrivalTime());
+            startedJobs++;
         }
+
+        System.out.println(job.getJobMessage("Running on queue #" + queue.getQueueNumber()));
+        job.process();
+
+        if (isJobCompleted(job)) {
+            completeJob(job, queue);
+        } else if (isJobAllotmentUsed(job, queue)) {
+            demoteJob(job, queue);
+        } else if (isJobQuantumUsed(job, queue)) {
+            rotateJob(job, queue);
+        }
+    }
+
+    private boolean isJobCompleted(final Job job) {
+        return job.getProgress() == job.getEndTime() - job.getArrivalTime();
+    }
+
+    private boolean isJobAllotmentUsed(final Job job, final JobQueue queue) {
+        return job.getAllotmentUsed() == queue.getAllotment() && queue.getQueueNumber() < jobQueues.size();
+    }
+
+    private boolean isJobQuantumUsed(final Job job, final JobQueue queue) {
+        return job.getQuantumUsed() == queue.getQuantum();
+    }
+
+    private void completeJob(final Job job, final JobQueue queue) {
+        System.out.println(job.getJobMessage("Completed"));
+
+        job.setState(JobState.COMPLETED);
+        completedJobs++;
+        
+        job.setTurnaroundTime(timer - job.getArrivalTime() + 1);
+        queue.jobs.removeFirst();
+    }
+
+    private void demoteJob(final Job job, final JobQueue queue) {
+        System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
+
+        job.setAllotmentUsed(0);
+        job.setQuantumUsed(0);
+        job.setState(JobState.READY);
+
+        JobQueue nextJobQueue = jobQueues.get(queue.getQueueNumber());
+        nextJobQueue.jobs.addLast(job);
+        queue.jobs.removeFirst();
+    }
+
+    private void rotateJob(final Job job, final JobQueue queue) {
+        System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
+
+        job.setQuantumUsed(0);
+        job.setState(JobState.READY);
+
+        queue.jobs.removeFirst();
+        queue.jobs.addLast(job);
     }
 
     private JobQueue findFirstUnemptyQueue() {
@@ -123,7 +160,7 @@ public class MLFQ {
                 }
                 
                 System.out.println(job.getJobMessage("Started IO \"" + io.getName() + "\""));
-                job.setState(JobState.BLOCKED);
+                job.block(io);
                 
                 List<Job> blockedJobs = queue.blockedJobs.getOrDefault(io.getEndTime(), new ArrayList<>());
                 blockedJobs.add(job);
@@ -152,7 +189,8 @@ public class MLFQ {
                     System.out.println(job.getJobMessage("Started IO \"" + nextIO.getName() + "\""));
                     int endTime = timer + (nextIO.getEndTime() - nextIO.getStartTime());
                     List<Job> blockedJobsAtEnd = queue.blockedJobs.getOrDefault(endTime, new ArrayList<>());
-
+                    
+                    job.block(nextIO);
                     blockedJobsAtEnd.add(job);
                     queue.blockedJobs.put(endTime, blockedJobsAtEnd);
                 }
@@ -185,14 +223,16 @@ public class MLFQ {
             }
         }
 
-        System.out.println("  -> " + AnsiColour.PURPLE + "Priority boost triggered." + AnsiColour.RESET);
+        System.out.println("  -> " + TextColour.PURPLE + "Priority boost triggered" + TextColour.RESET);
     }
 
     public void addJob(final String pid, final int arrivalTime, final int endTime) {
-        if (!validTimeWindow(arrivalTime, endTime)) {
-            return;
-        } else if (jobPIDs.containsKey(pid)) {
+        if (jobPIDs.containsKey(pid)) {
             System.out.println("The pid: " + pid + " is already in use by another job, please use another pid.");
+            return;
+        }
+        
+        if (!validTimeWindow(arrivalTime, endTime)) {
             return;
         }
 
@@ -202,23 +242,33 @@ public class MLFQ {
 
         readyJobs.put(arrivalTime, jobsAtTimestamp);
         jobPIDs.put(pid, job);
+
+        System.out.println("Job with pid: " + pid + " has been added to the scheduler.");
     }
 
     public void addIO(final String ioName, final String pid, final int arrivalTime, final int endTime) {
+        if (!jobPIDs.containsKey(pid)) {
+            System.out.println("Job with pid: " + pid + " does not exist.");
+            return;
+        } 
+        
         if (!validTimeWindow(arrivalTime, endTime)) {
             return;
-        } else if (!jobPIDs.containsKey(pid)) {
-            System.out.println("Job with pid: " + pid + " does not exist.");
+        } 
+
+        Job job = jobPIDs.get(pid);
+        if (arrivalTime < job.getArrivalTime() || endTime > job.getEndTime()) {
+            System.out.println("IO: \"" + ioName + "\" must occur within the lifetime of job: " + pid + ".");
             return;
         }
 
-        Job job = jobPIDs.get(pid);
         job.ioQueue.offer(new IO(ioName, arrivalTime, endTime));
+        System.out.println("IO: \"" + ioName + "\" has been added to the IO queue of job: " + pid + ".");
     }
 
     private boolean validTimeWindow(final int arrivalTime, final int endTime) {
         if (arrivalTime < timer) {
-            System.out.println("Arrival time must be on or after " + timer);
+            System.out.println("Arrival time must be on or after " + timer + "ms.");
             return false;
         } else if (arrivalTime >= endTime) {
             System.out.println("End time must be greater than the arrival time.");
@@ -228,21 +278,49 @@ public class MLFQ {
         return true;
     }
 
-    public String getJobInfo(final String pid) {
-        return jobPIDs.containsKey(pid) ? jobPIDs.get(pid).toString() : "Job with pid: " + pid + " was not found.";
+    public double getAvgTurnaroundTime() {
+        if (completedJobs > 0) {
+            return (double)jobPIDs
+                .values()
+                .stream()
+                .map(x -> x.getTurnaroundTime())
+                .reduce(0, (a, b) -> a + b) / completedJobs;
+        }
+        
+        return 0;
     }
 
-    public String getSchedulingHistory(int start, int end) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("\n=============================== MLFQ Scheduling History ===============================");
-        sb.append("\n\nTime ->");
-
-        for (int i = start; i <= end; i++) {
-            sb.append("   " + i);
+    public double getAvgResponseTime() {
+        if (startedJobs > 0) {
+            return (double)jobPIDs
+                .values()
+                .stream()
+                .map(x -> x.getResponseTime())
+                .reduce(0, (a, b) -> a + b) / startedJobs;
         }
 
-        return sb.toString();
+        return 0;
+    }
+
+    public double getAvgWaitingTime() {
+        if (completedJobs > 0) {
+            return (double)jobPIDs
+                .values()
+                .stream()
+                .filter(x -> x.getState() == JobState.COMPLETED)
+                .map(x -> x.getWaitingTime())
+                .reduce(0, (a, b) -> a + b) / completedJobs;
+        }
+
+        return 0;
+    }
+
+    public double getCPUUtilization() {
+        return timer == 0 ? 0 : (double)activeTime / timer;
+    }
+
+    public Optional<Job> getJobByPid(final String pid) {
+        return Optional.of(jobPIDs.getOrDefault(pid, null));
     }
 
     public void setRunning(final boolean running) { this.running.set(running); }

@@ -1,3 +1,5 @@
+import java.text.DecimalFormat;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class CommandHandler {
@@ -28,20 +30,18 @@ public class CommandHandler {
                 break;
             case "add-job":
                 scheduler.addJob(command[1], Integer.parseInt(command[2]), Integer.parseInt(command[3]));
-                System.out.println("Job with pid: " + command[1] + " has been added to the scheduler");
                 break;
             case "add-io":
                 scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
-                System.out.println("IO operation: " + command[1] + " has been added to the IO queue of job with pid: " + command[2]);
                 break;
             case "show-mlfq":
                 System.out.println(scheduler);
                 break;
-            case "show-history":
-                System.out.println(scheduler.getSchedulingHistory(Integer.parseInt(command[1]), Integer.parseInt(command[2])));
+            case "show-metrics":
+                showMetrics();
                 break;
             case "show-job":
-                System.out.println(scheduler.getJobInfo(command[1]));
+                showJob(command[1]);
                 break;
             case "resume":
                 scheduler.setPaused(false);
@@ -50,6 +50,26 @@ public class CommandHandler {
                 scheduler.setRunning(false);
                 break;
         }
+    }
+
+    public void showJob(final String pid) {
+        Optional<Job> job = scheduler.getJobByPid(pid);
+        System.out.println(job.isEmpty() ? "Job with pid: " + pid + " was not found." : job.get());
+    }
+
+    public void showMetrics() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n======================================= Metrics =======================================\n\n");
+
+        sb.append("-> " + TextColour.GREEN + "Average Turnaround Time: " + TextColour.RESET + scheduler.getAvgTurnaroundTime() + "ms\n");
+        sb.append("-> " + TextColour.GREEN + "Average Response Time: " + TextColour.RESET + scheduler.getAvgResponseTime() + "ms\n");
+        sb.append("-> " + TextColour.GREEN + "Average Waiting Time: " + TextColour.RESET + scheduler.getAvgWaitingTime() + "ms\n");
+
+        String cpuUtilPercentage = new DecimalFormat("#.##").format(scheduler.getCPUUtilization() * 100) + "%";
+        sb.append("-> " + TextColour.GREEN + "CPU Utilization: " + TextColour.RESET + cpuUtilPercentage);
+        
+        sb.append("\n\n=======================================================================================");
+        System.out.println(sb.toString());
     }
 
     public void help() {
@@ -69,10 +89,8 @@ public class CommandHandler {
                         "System Information:\r\n" + //
                         "  show-mlfq\r\n" + //
                         "      - Displays the current state of the MLFQ.\r\n" + //
-                        "\r\n" + //
-                        "  show-history <start_time> <end_time>\r\n" + //
-                        "      - Displays the scheduling history between the given range.\r\n" + //
-                        "\r\n" + //
+                        "  show-metrics\r\n" + //
+                        "      - Displays the metrics of the MLFQ, including CPU utilisation, average response time, and more.\r\n" + //
                         "  show-job <pid>\r\n" + //
                         "      - Displays details of a specific job.\r\n" + //
                         "      - Example: show-job P1\r\n" + //

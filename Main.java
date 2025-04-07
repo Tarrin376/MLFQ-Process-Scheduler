@@ -5,8 +5,8 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         MLFQBuilder builder = new MLFQBuilder();
 
-        System.out.println("\n==========================================================\r\n" + AnsiColour.GREEN +
-                        "           MULTI-LEVEL FEEDBACK QUEUE SCHEDULER  \r\n" + AnsiColour.RESET +
+        System.out.println("\n==========================================================\r\n" + TextColour.GREEN +
+                        "           MULTI-LEVEL FEEDBACK QUEUE SCHEDULER  \r\n" + TextColour.RESET +
                         "==========================================================");
 
         System.out.print("\nEnter priority boost interval (ms): ");
