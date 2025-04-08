@@ -22,7 +22,6 @@ A command-line simulation of a **Multi-Level Feedback Queue (MLFQ)** scheduler i
 ## 📦 Example Usage
 
 ```bash
-> 
 > add-job P1 0 20
 > add-io disk-read P1 5 10
 > show-mlfq
@@ -103,7 +102,6 @@ Job Queue 1 (Lowest Priority)
 ---------------------------------------------------------------------------------------
 
 [Simulation paused. Type 'resume' to continue.]
->
 > add-job P1 2 10
 Job with pid: P1 has been added to the scheduler.
 > add-io disk-read P1 5 7
@@ -155,7 +153,6 @@ IO: "mouse-click" has been added to the IO queue of job: P3.
 ---------------------------------------------------------------------------------------
 
 [Simulation paused. Type 'resume' to continue.]
->
 > show-mlfq
 
 ===================================== MLFQ Queues =====================================
@@ -202,6 +199,7 @@ Job {
 
 ======================================= Metrics =======================================
 
+# These metrics are computed based on the current timestamp of the scheduler
 -> Average Turnaround Time: 0.0ms
 -> Average Response Time: 0.0ms
 -> Average Waiting Time: 0.0ms
