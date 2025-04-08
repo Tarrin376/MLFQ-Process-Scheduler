@@ -43,7 +43,7 @@ public class MLFQ {
     }
 
     public void run() throws InterruptedException {
-        System.out.println("\nSimulation started. Type 'help' for commands.");
+        System.out.println(TextColour.PURPLE + "\n[Simulation started. Type 'help' for commands.]" + TextColour.RESET);
         System.out.println("\n=======================================================================================");
 
         Thread enterPauseListener = new Thread(new EnterPauseListener(this));
@@ -96,57 +96,15 @@ public class MLFQ {
         System.out.println(job.getJobMessage("Running on queue #" + queue.getQueueNumber()));
         job.process();
 
-        if (isJobCompleted(job)) {
-            completeJob(job, queue);
-        } else if (isJobAllotmentUsed(job, queue)) {
-            demoteJob(job, queue);
-        } else if (isJobQuantumUsed(job, queue)) {
-            rotateJob(job, queue);
+        if (job.hasFinished()) {
+            job.setTurnaroundTime(timer - job.getArrivalTime() + 1);
+            job.completeJob(queue);
+            completedJobs++;
+        } else if (job.isAllotmentUsed(queue) && queue.getQueueNumber() < jobQueues.size()) {
+            job.demoteJob(queue, jobQueues.get(queue.getQueueNumber()));
+        } else if (job.isQuantumUsed(queue)) {
+            job.rotateJob(queue);
         }
-    }
-
-    private boolean isJobCompleted(final Job job) {
-        return job.getProgress() == job.getEndTime() - job.getArrivalTime();
-    }
-
-    private boolean isJobAllotmentUsed(final Job job, final JobQueue queue) {
-        return job.getAllotmentUsed() == queue.getAllotment() && queue.getQueueNumber() < jobQueues.size();
-    }
-
-    private boolean isJobQuantumUsed(final Job job, final JobQueue queue) {
-        return job.getQuantumUsed() == queue.getQuantum();
-    }
-
-    private void completeJob(final Job job, final JobQueue queue) {
-        System.out.println(job.getJobMessage("Completed"));
-
-        job.setState(JobState.COMPLETED);
-        completedJobs++;
-        
-        job.setTurnaroundTime(timer - job.getArrivalTime() + 1);
-        queue.jobs.removeFirst();
-    }
-
-    private void demoteJob(final Job job, final JobQueue queue) {
-        System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
-
-        job.setAllotmentUsed(0);
-        job.setQuantumUsed(0);
-        job.setState(JobState.READY);
-
-        JobQueue nextJobQueue = jobQueues.get(queue.getQueueNumber());
-        nextJobQueue.jobs.addLast(job);
-        queue.jobs.removeFirst();
-    }
-
-    private void rotateJob(final Job job, final JobQueue queue) {
-        System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
-
-        job.setQuantumUsed(0);
-        job.setState(JobState.READY);
-
-        queue.jobs.removeFirst();
-        queue.jobs.addLast(job);
     }
 
     private JobQueue findFirstUnemptyQueue() {
@@ -228,11 +186,11 @@ public class MLFQ {
 
     public void addJob(final String pid, final int arrivalTime, final int endTime) {
         if (jobPIDs.containsKey(pid)) {
-            System.out.println("The pid: " + pid + " is already in use by another job, please use another pid.");
+            System.out.println(TextColour.getErrorMessage("The pid: " + pid + " is already in use by another job."));
             return;
         }
         
-        if (!validTimeWindow(arrivalTime, endTime)) {
+        if (!InputUtils.validTimeWindow(arrivalTime, endTime, timer)) {
             return;
         }
 
@@ -252,7 +210,7 @@ public class MLFQ {
             return;
         } 
         
-        if (!validTimeWindow(arrivalTime, endTime)) {
+        if (!InputUtils.validTimeWindow(arrivalTime, endTime, timer)) {
             return;
         } 
 
@@ -264,18 +222,6 @@ public class MLFQ {
 
         job.ioQueue.offer(new IO(ioName, arrivalTime, endTime));
         System.out.println("IO: \"" + ioName + "\" has been added to the IO queue of job: " + pid + ".");
-    }
-
-    private boolean validTimeWindow(final int arrivalTime, final int endTime) {
-        if (arrivalTime < timer) {
-            System.out.println("Arrival time must be on or after " + timer + "ms.");
-            return false;
-        } else if (arrivalTime >= endTime) {
-            System.out.println("End time must be greater than the arrival time.");
-            return false;
-        } 
-
-        return true;
     }
 
     public double getAvgTurnaroundTime() {

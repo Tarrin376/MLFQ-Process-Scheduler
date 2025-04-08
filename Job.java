@@ -53,6 +53,45 @@ public class Job {
         return sb.toString();
     }
 
+    public boolean hasFinished() {
+        return progress == endTime - arrivalTime;
+    }
+
+    public boolean isAllotmentUsed(final JobQueue queue) {
+        return allotmentUsed == queue.getAllotment();
+    }
+
+    public boolean isQuantumUsed(final JobQueue queue) {
+        return quantumUsed == queue.getQuantum();
+    }
+
+    public void completeJob(final JobQueue queue) {
+        System.out.println(getJobMessage("Completed"));
+        state = JobState.COMPLETED;
+        queue.jobs.removeFirst();
+    }
+
+    public void demoteJob(final JobQueue queue, final JobQueue nextQueue) {
+        System.out.println(getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
+
+        allotmentUsed = 0;
+        quantumUsed = 0;
+        state = JobState.READY;
+
+        nextQueue.jobs.addLast(this);
+        queue.jobs.removeFirst();
+    }
+
+    public void rotateJob(final JobQueue queue) {
+        System.out.println(getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
+
+        quantumUsed = 0;
+        state = JobState.READY;
+
+        queue.jobs.removeFirst();
+        queue.jobs.addLast(this);
+    }
+
     public void process() {
         progress++;
         quantumUsed++;

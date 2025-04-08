@@ -29,10 +29,10 @@ public class CommandHandler {
                 help();
                 break;
             case "add-job":
-                scheduler.addJob(command[1], Integer.parseInt(command[2]), Integer.parseInt(command[3]));
+                addJob(command);
                 break;
             case "add-io":
-                scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
+                addIO(command);
                 break;
             case "show-mlfq":
                 System.out.println(scheduler);
@@ -41,7 +41,7 @@ public class CommandHandler {
                 showMetrics();
                 break;
             case "show-job":
-                showJob(command[1]);
+                showJob(command);
                 break;
             case "resume":
                 scheduler.setPaused(false);
@@ -52,9 +52,42 @@ public class CommandHandler {
         }
     }
 
-    public void showJob(final String pid) {
-        Optional<Job> job = scheduler.getJobByPid(pid);
-        System.out.println(job.isEmpty() ? "Job with pid: " + pid + " was not found." : job.get());
+    public void addJob(final String[] command) {
+        if (command.length != 4) {
+            System.out.println(TextColour.getErrorMessage("Invalid command format. Expected: add-job <pid> <arrival_time> <end_time>"));
+            return;
+        }
+
+        if (!InputUtils.isNumeric(command[2]) || !InputUtils.isNumeric(command[3])) {
+            System.out.println(TextColour.getErrorMessage("Invalid input: Arrival and end times must be valid whole numbers."));
+            return;
+        }
+
+        scheduler.addJob(command[1], Integer.parseInt(command[2]), Integer.parseInt(command[3]));
+    }
+
+    public void addIO(final String[] command) {
+        if (command.length != 5) {
+            System.out.println(TextColour.getErrorMessage("Invalid command format. Expected: add-io <io_name> <pid> <arrival_time> <end_time>"));
+            return;
+        }
+
+        if (!InputUtils.isNumeric(command[3]) || !InputUtils.isNumeric(command[4])) {
+            System.out.println(TextColour.getErrorMessage("Invalid input: Arrival and end times must be valid whole numbers."));
+            return;
+        }
+
+        scheduler.addIO(command[1], command[2], Integer.parseInt(command[3]), Integer.parseInt(command[4]));
+    }
+
+    public void showJob(final String[] command) {
+        if (command.length != 2) {
+            System.out.println(TextColour.getErrorMessage("Invalid command format. Expected: show-job <pid>"));
+            return;
+        }
+
+        Optional<Job> job = scheduler.getJobByPid(command[1]);
+        System.out.println(job.isEmpty() ? "Job with pid: " + command[1] + " was not found." : job.get());
     }
 
     public void showMetrics() {
