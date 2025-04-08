@@ -58,7 +58,7 @@ public class CommandHandler {
             return;
         }
 
-        if (!InputUtils.isNumeric(command[2]) || !InputUtils.isNumeric(command[3])) {
+        if (!InputSanitizer.isNumeric(command[2]) || !InputSanitizer.isNumeric(command[3])) {
             System.out.println(TextColour.getErrorMessage("Invalid input: Arrival and end times must be valid whole numbers."));
             return;
         }
@@ -72,7 +72,7 @@ public class CommandHandler {
             return;
         }
 
-        if (!InputUtils.isNumeric(command[3]) || !InputUtils.isNumeric(command[4])) {
+        if (!InputSanitizer.isNumeric(command[3]) || !InputSanitizer.isNumeric(command[4])) {
             System.out.println(TextColour.getErrorMessage("Invalid input: Arrival and end times must be valid whole numbers."));
             return;
         }

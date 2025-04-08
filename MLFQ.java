@@ -190,7 +190,7 @@ public class MLFQ {
             return;
         }
         
-        if (!InputUtils.validTimeWindow(arrivalTime, endTime, timer)) {
+        if (!InputSanitizer.validTimeWindow(arrivalTime, endTime, timer)) {
             return;
         }
 
@@ -210,7 +210,7 @@ public class MLFQ {
             return;
         } 
         
-        if (!InputUtils.validTimeWindow(arrivalTime, endTime, timer)) {
+        if (!InputSanitizer.validTimeWindow(arrivalTime, endTime, timer)) {
             return;
         } 
 

@@ -32,7 +32,7 @@ public class Main {
             System.out.print("\n- Enter time quantum (ms): ");
             String quantum = scanner.nextLine();
 
-            if (InputUtils.isNonNegativeInteger(quantum)) {
+            if (InputSanitizer.isNonNegativeInteger(quantum)) {
                 return Integer.parseInt(quantum);
             }
         }
@@ -43,7 +43,7 @@ public class Main {
             System.out.print("\n- Enter allotment (number of quanta before demotion): ");
             String allotment = scanner.nextLine();
 
-            if (!InputUtils.isNonNegativeInteger(allotment)) {
+            if (!InputSanitizer.isNonNegativeInteger(allotment)) {
                 continue;
             }
 
@@ -61,7 +61,7 @@ public class Main {
             System.out.print("\nEnter priority boost interval (ms): ");
             String priorityBoost = scanner.nextLine();
 
-            if (InputUtils.isNonNegativeInteger(priorityBoost)) {
+            if (InputSanitizer.isNonNegativeInteger(priorityBoost)) {
                 return Integer.parseInt(priorityBoost);
             }
         }
@@ -72,7 +72,7 @@ public class Main {
             System.out.print("\nEnter the number of priority levels (job queues): ");
             String numJobQueues = scanner.nextLine();
 
-            if (InputUtils.isNonNegativeInteger(numJobQueues)) {
+            if (InputSanitizer.isNonNegativeInteger(numJobQueues)) {
                 return Integer.parseInt(numJobQueues);
             }
         }
