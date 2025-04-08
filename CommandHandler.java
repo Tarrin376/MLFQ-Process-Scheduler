@@ -112,12 +112,12 @@ public class CommandHandler {
                         "\r\n" + //
                         "Process Management:\r\n" + //
                         "  add-job <pid> <arrival_time> <end_time>\r\n" + //
-                        "      - Adds a new job to the system.\r\n" + //
+                        "      - Adds a new job to the scheduler.\r\n" + //
                         "      - Example: add-job P1 0 20\r\n" + //
                         "\r\n" + //
                         "  add-io <io_name> <pid> <arrival_time> <end_time>\r\n" + //
                         "      - Adds an I/O event for a job.\r\n" + //
-                        "      - Example: add-io upload-file P1 5 10\r\n" + //
+                        "      - Example: add-io disk-read P1 5 10\r\n" + //
                         "\r\n" + //
                         "System Information:\r\n" + //
                         "  show-mlfq\r\n" + //
@@ -129,9 +129,6 @@ public class CommandHandler {
                         "      - Example: show-job P1\r\n" + //
                         "\r\n" + //
                         "Simulation Controls:\r\n" + //
-                        "  -p\r\n" + //
-                        "      - Pauses the simulation (only command that can be used during runtime).\r\n" + //
-                        "\r\n" + //
                         "  resume\r\n" + //
                         "      - Resumes the simulation after a pause.\r\n" + //
                         "\r\n" + //
