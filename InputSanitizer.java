@@ -1,4 +1,4 @@
-public class InputUtils {
+public class InputSanitizer {
     public static boolean isNumeric(final String value) {
         return value.matches("\\d+");
     }
