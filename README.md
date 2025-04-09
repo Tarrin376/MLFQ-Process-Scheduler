@@ -96,74 +96,66 @@ Job Queue 1 (Lowest Priority)
 
 ---------------------------------------------------------------------------------------
 
-[Time: 1ms]
-  -> No job scheduled - CPU is idle.
-
----------------------------------------------------------------------------------------
-
 [Simulation paused. Type 'resume' to continue.]
-> add-job P1 2 10
+>
+> add-job P1 1 10
 Job with pid: P1 has been added to the scheduler.
-> add-io disk-read P1 5 7
-IO: "disk-read" has been added to the IO queue of job: P1.
-> add-job P2 5 9
+> add-job P2 4 15
 Job with pid: P2 has been added to the scheduler.
-> add-job P3 2 15
+> add-job P3 3 9
 Job with pid: P3 has been added to the scheduler.
-> add-io mouse-click P3 4 7
-IO: "mouse-click" has been added to the IO queue of job: P3.
+> add-io disk-read P1 4 8
+IO: "disk-read" has been added to the IO queue of job: P1.
+> add-io mouse-click P2 5 8
+IO: "mouse-click" has been added to the IO queue of job: P2.
 > resume
 
-[Time: 2ms]
+[Time: 1ms]
   -> Job: [P1] (progress: 0%) Running on queue #1
 
 ---------------------------------------------------------------------------------------
 
+[Time: 2ms]
+  -> Job: [P1] (progress: 11.11%) Running on queue #1
+  -> Job: [P1] (progress: 22.22%) Quantum expired (2ms) - moved to the back of queue #1
+
+---------------------------------------------------------------------------------------
+
 [Time: 3ms]
-  -> Job: [P1] (progress: 12.5%) Running on queue #1
-  -> Job: [P1] (progress: 25%) Quantum expired (2ms) - moved to the back of queue #1
+  -> Job: [P1] (progress: 22.22%) Running on queue #1
 
 ---------------------------------------------------------------------------------------
 
 [Time: 4ms]
-  -> Job: [P3] (progress: 0%) Started IO "mouse-click"
-  -> Job: [P1] (progress: 25%) Running on queue #1
+  -> Job: [P1] (progress: 33.33%) Started IO "disk-read"
+  -> Job: [P3] (progress: 0%) Running on queue #1
 
 ---------------------------------------------------------------------------------------
 
 [Time: 5ms]
-  -> Job: [P1] (progress: 37.5%) Started IO "disk-read"
-  -> Job: [P2] (progress: 0%) Running on queue #1
+  -> Job: [P3] (progress: 16.67%) Running on queue #1
+  -> Job: [P3] (progress: 33.33%) Quantum expired (2ms) - moved to the back of queue #1
 
 ---------------------------------------------------------------------------------------
 
 [Time: 6ms]
-  -> Job: [P2] (progress: 25%) Running on queue #1
-  -> Job: [P2] (progress: 50%) Quantum expired (2ms) - moved to the back of queue #1
-
----------------------------------------------------------------------------------------
-
-[Time: 7ms]
-  -> Job: [P3] (progress: 0%) Completed IO "mouse-click"
-  -> Job: [P3] (progress: 0%) Unblocked and re-entered queue #1
-  -> Job: [P1] (progress: 37.5%) Completed IO "disk-read"
-  -> Job: [P1] (progress: 37.5%) Unblocked and re-entered queue #1
-  -> Job: [P2] (progress: 50%) Running on queue #1
+  -> Job: [P2] (progress: 0%) Running on queue #1
 
 ---------------------------------------------------------------------------------------
 
 [Simulation paused. Type 'resume' to continue.]
+>
 > show-mlfq
 
 ===================================== MLFQ Queues =====================================
 
 Queue 1:
   [Ready / Running]
-    |__ P2 | State: RUNNING | Progress: 75% | Time in Queue: 3ms
-    |__ P3 | State: READY | Progress: 0% | Time in Queue: 0ms
-    |__ P1 | State: READY | Progress: 37.5% | Time in Queue: 3ms
+    |__ P2 | State: RUNNING | Progress: 9.09% | Time in Queue: 1ms
+    |__ P3 | State: READY | Progress: 33.33% | Time in Queue: 2ms
 
   [Blocked]
+    |__ P1 | Blocked Until: 8ms | IO: "disk-read"
 
 ---------------------------------------------------------------------------------------
 
@@ -173,37 +165,27 @@ Queue 2:
   [Blocked]
 
 =======================================================================================
-> show-job P2
-Job {
-  PID: P2
-  Arrival Time: 5ms
-  End Time: 9ms
-  Progress: 3
-  Allotment Used: 3ms
-  Quantum Used: 1ms
-  State: RUNNING
-  IO Queue: []
-}
 > show-job P1
 Job {
   PID: P1
-  Arrival Time: 2ms
+  Arrival Time: 1ms
   End Time: 10ms
-  Progress: 3
+  Progress: 33.33%
   Allotment Used: 3ms
   Quantum Used: 1ms
-  State: READY
-  IO Queue: []
+  State: BLOCKED
+  IO Queue: [
+     { name: "disk-read", startTime: 4, endTime: 8 }
+  ]
 }
 > show-metrics
 
 ======================================= Metrics =======================================
 
-# These metrics are computed based on the current timestamp of the scheduler
 -> Average Turnaround Time: 0.0ms
--> Average Response Time: 0.0ms
+-> Average Response Time: 1.0ms
 -> Average Waiting Time: 0.0ms
--> CPU Utilization: 75%
+-> CPU Utilization: 85.71%
 
 =======================================================================================
 ```

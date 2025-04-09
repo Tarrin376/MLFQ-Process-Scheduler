@@ -38,7 +38,7 @@ public class Job {
         sb.append("  PID: ").append(pid).append("\n");
         sb.append("  Arrival Time: ").append(arrivalTime).append("ms\n");
         sb.append("  End Time: ").append(endTime).append("ms\n");
-        sb.append("  Progress: ").append(progress).append("\n");
+        sb.append("  Progress: ").append(getProgressPercentage()).append("\n");
         sb.append("  Allotment Used: ").append(allotmentUsed).append("ms\n");
         sb.append("  Quantum Used: ").append(quantumUsed).append("ms\n");
         sb.append("  State: ").append(getJobStateColour()).append("\n");
