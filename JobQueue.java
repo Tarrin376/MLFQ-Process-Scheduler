@@ -39,7 +39,8 @@ public class JobQueue {
             List<Job> blocked = entry.getValue();
 
             for (Job job : blocked) {
-                sb.append("\n    |__ " + job.getPID() + " | Blocked Until: " + blockedUntil + "ms | IO: \"" + job.ioQueue.peek().getName() + "\"");
+                sb.append("\n    |__ " + job.getPID() + " | Blocked Until: " + TextColour.RED + blockedUntil + "ms" + 
+                TextColour.RESET + " | IO: " + TextColour.CYAN + "\"" + job.ioQueue.peek().getName() + "\"" + TextColour.RESET);
             }
         }
 
