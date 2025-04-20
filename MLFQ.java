@@ -83,6 +83,33 @@ public class MLFQ {
         System.out.println("\n---------------------------------------------------------------------------------------");
     }
 
+    private void completeJob(final Job job, final JobQueue queue) {
+        System.out.println(job.getJobMessage("Completed"));
+        job.setState(JobState.COMPLETED);
+        queue.jobs.removeFirst();
+    }
+
+    private void demoteJob(final Job job, final JobQueue queue, final JobQueue nextQueue) {
+        System.out.println(job.getJobMessage("Allotment expired (" + queue.getAllotment() + "ms) - moved to the back of queue #" + (queue.getQueueNumber() + 1)));
+
+        job.setAllotmentUsed(0);
+        job.setQuantumUsed(0);
+        job.setState(JobState.READY);
+
+        nextQueue.jobs.addLast(job);
+        queue.jobs.removeFirst();
+    }
+
+    private void rotateJob(final Job job, final JobQueue queue) {
+        System.out.println(job.getJobMessage("Quantum expired (" + queue.getQuantum() + "ms) - moved to the back of queue #" + queue.getQueueNumber()));
+
+        job.setQuantumUsed(0);
+        job.setState(JobState.READY);
+
+        queue.jobs.removeFirst();
+        queue.jobs.addLast(job);
+    }
+
     private void processJob(final Job job, final JobQueue queue) {
         if (job.getState() == JobState.READY) {
             job.setState(JobState.RUNNING);
@@ -98,12 +125,12 @@ public class MLFQ {
 
         if (job.hasFinished()) {
             job.setTurnaroundTime(timer - job.getArrivalTime() + 1);
-            job.completeJob(queue);
+            completeJob(job, queue);
             completedJobs++;
         } else if (job.isAllotmentUsed(queue) && queue.getQueueNumber() < jobQueues.size()) {
-            job.demoteJob(queue, jobQueues.get(queue.getQueueNumber()));
+            demoteJob(job, queue, jobQueues.get(queue.getQueueNumber()));
         } else if (job.isQuantumUsed(queue)) {
-            job.rotateJob(queue);
+            rotateJob(job, queue);
         }
     }
 
