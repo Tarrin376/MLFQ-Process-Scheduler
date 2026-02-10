@@ -1,25 +1,25 @@
-# 🧠 MLFQ Process Scheduler (CLI)
+# MLFQ Process Scheduler (CLI)
 
 A command-line simulation of a **Multi-Level Feedback Queue (MLFQ)** scheduler in Java, using the **Round-Robin algorithm** at each level for fair and responsive process management.
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🧩 Multi-level ready queues with configurable quantum & allotment per level
-- ⏱️ Accurate tracking of:
+- Multi-level ready queues with configurable quantum & allotment per level
+- Accurate tracking of:
   - Average Turnaround Time
   - Response Time
   - Waiting Time
   - CPU Utilization
-- 🧵 I/O blocking and unblocking with scheduling effects
-- 🎛️ Adjustable parameters: number of queues, boost/reset intervals, quantum and allotment times, and more!
-- 🖥️ Interactive Command-Line Interface for job management and live control
-- 📊 Visual representation of queues and job scheduling
+- I/O blocking and unblocking with scheduling effects
+- Adjustable parameters: number of queues, boost/reset intervals, quantum and allotment times, and more!
+- Interactive Command-Line Interface for job management and live control
+- Visual representation of queues and job scheduling
 
 ---
 
-## 📦 Example Usage
+## Example Usage
 
 ```bash
 > add-job P1 0 20
@@ -29,12 +29,12 @@ A command-line simulation of a **Multi-Level Feedback Queue (MLFQ)** scheduler i
 > resume # Resumes the simulation
 
 # During execution:
-# 📌 Press ENTER at any time to pause the simulation and enter command mode
+# Press ENTER at any time to pause the simulation and enter command mode
 ```
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 1. Clone the Repository
 ```bash
@@ -50,7 +50,7 @@ A command-line simulation of a **Multi-Level Feedback Queue (MLFQ)** scheduler i
 
 ---
 
-## 🧾 Commands
+## Commands
 
 ```bash
 > add-job <pid> <arrival_time> <end_time> # Adds a new job to the scheduler e.g. add-job P1 0 20
@@ -64,7 +64,7 @@ A command-line simulation of a **Multi-Level Feedback Queue (MLFQ)** scheduler i
 
 ---
 
-## 📊 Sample Output
+## Sample Output
 
 ```bash
 =======================================================================================
